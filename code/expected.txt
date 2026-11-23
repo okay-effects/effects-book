@@ -1,0 +1,10 @@
+1 paid: moved 30 from ann to bob at 42
+1 balances: ann=70 bob=30
+2 refused: ann has 10, needs 30
+2 balances: ann=10 bob=0
+3 journal: Balance(ann) -> 100
+3 journal: Move(ann,bob,30) -> ()
+4 refused: a move of 80 is over the limit of 50
+4 balances: ann=100 bob=0
+5 left early: the journal has 1 line, Balance(ann) -> 10
+6 twice: 100 -> moved 30 from ann to bob at 42 | 10 -> refused: ann has 10, needs 30
