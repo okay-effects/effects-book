@@ -268,7 +268,8 @@ the renderings under `code/`.
 
 ### Part IV · Compared with everything else
 - ✓ **5 The map: everything else, on the two halves** — plain code and exceptions; interfaces and dependency
-  injection; command objects and interpreters of plain data; mocks; monads and their transformers; free
+  injection; ports and adapters (hexagonal architecture); command objects and interpreters of plain data; mocks;
+  monads and their transformers; free
   monads; tagless final; effect runtimes (ZIO, Cats Effect; Effect and Kyo as far as I am sure); capabilities;
   async/await, generators, coroutines, threads and goroutines; callbacks and CPS; `call/cc`; `shift`/`reset`
   and prompts; aspects, proxies and middleware; languages with effects built in, with OCaml 5's one-shot
@@ -278,7 +279,12 @@ the renderings under `code/`.
   past (5.2); swapping a service against giving an operation a meaning, and two runtimes in one system (5.7).
   It compares each approach as ordinarily used, and says how that differs from the same approach as a
   substrate in Part III; the last row of each table is the idea, not an implementation. Restructured as the
-  map 2026-11-18 (the section above says what was added).
+  map 2026-11-18 (the section above says what was added). Added 2026-11-27: 5.2a, ports and adapters — the
+  architecture built on 5.2: what it gets right (it finds the signature: a port is an effect's vocabulary, an
+  adapter a handler, the composition root the one line), where it ends (the boundary is a rule about source
+  files; an adapter answers and that is all, so every policy about what comes after the answer is a shape of
+  the use case), and that a team with ports has only to make the call a value. No row of its own in the tables
+  (it shares 5.2's). One paragraph "In my library" cites okay-tiny's tests by name; nothing of it is run here.
 - ✓ **6 What a handler can do that a wrapper cannot** — the second half alone: the six things a handler can do
   with the rest. Source: A 3, 11, 19. In the notation since 2026-11-18; checked by
   `code/scala/continuation.scala`, blocks 1 to 6; each section says what it needs of a technique, and §6.8 has

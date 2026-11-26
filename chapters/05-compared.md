@@ -4,7 +4,7 @@ Effects did not appear in an empty field. Every problem of chapter 1 has well-kn
 excellent, and most engineers reading this already use several. So the useful question is not "are effects good"
 but **"what does each approach see, what does it cost, and what can it not do"**.
 
-This chapter takes the payment of chapter 2 through every neighbouring mechanism I know: fifteen sections. For
+This chapter takes the payment of chapter 2 through every neighbouring mechanism I know: sixteen sections. For
 each I say first what it does well — people chose it for reasons — then where it ends, and then, under the
 words **on the two halves**, why it ends there. Chapter 2b said that algebraic effects are operations as data
 together with the rest of the program as a delimited continuation. Every mechanism below is that with one half
@@ -152,6 +152,81 @@ hand. And the rest of the caller is the host's stack, which nobody is given. One
 implementation the name refers to — is all that was made exchangeable. Every limit listed above is one of those
 two absences: "it lists what was given" and "the wiring is a second program" are the missing data; "the call is
 a call" is the missing rest.
+
+## 5.2a Ports and adapters
+
+Section 5.2 was about a mechanism. This one is about the architecture most often built on it, under the names
+*ports and adapters* and *hexagonal architecture*, and with small differences *onion* and *clean*.
+
+```
+-- the application, which knows nothing outside itself
+port Accounts { balance(account): Number ; move(from, to, amount) }      -- an interface it owns
+class Payments(accounts: Accounts, clock: Clock) { def pay(from, to, amount): Receipt = ... }
+
+-- the outside, which knows the application
+class SqlAccounts(db) implements Accounts { ... }                         -- an adapter
+main = new Payments(new SqlAccounts(db), new SystemClock)                 -- the composition root
+```
+
+The snippet is pseudocode. The application declares what it needs as interfaces of its own, the *ports*.
+Everything that touches a database, a network or a clock is an *adapter* that implements a port, and the
+dependencies point inward: an adapter knows the application, the application knows no adapter.
+
+**What it does well.** It is the best-known answer to the problem of this book, and a team that follows it has
+most of what chapter 7 asks for. The business rules can be read without the database. A test gives the
+application adapters in memory. A second world — another database, a queue in place of a call — is a second
+adapter. It is drawn on a whiteboard in a minute and needs nothing from the language. And it names the right
+thing: that the code which decides and the code which reaches are two kinds of code. Chapter 7's sentence, "the
+data model is the effects and every implementation is a handler", is this architecture with two words changed:
+a port is an effect's vocabulary, an adapter is a handler, an application service is a program, and the
+composition root is the one line.
+
+**Where it ends.** It is section 5.2's mechanism used with discipline, so it ends where that does, and the
+discipline adds two things of its own.
+
+*The boundary is a rule about source files.* That the application calls no adapter, reads no clock and opens
+no socket is checked by a reviewer, or by a tool that reads the import statements. Requirement 1 is met for
+what passes a port and assumed for the rest.
+
+*An adapter answers, and that is all it does.* It returns a value or throws. What happens *after* the answer
+is in the application, so every policy about what happens next is written there. Take a use case that checks
+five things and may refuse at each. Stopping at the first refusal, collecting all five to show beside a form,
+and turning a refusal into "no result" are three policies. With a port they are three shapes of the use case:
+an exception thrown through it, a list of errors carried through it, an optional returned at every step. With
+the refusal as an operation they are three handlers of one program, because the handler has the rest: it drops
+it, goes on with it, or drops it and gives a value of its own. Section 6.2 runs the first, a handler that leaves
+from deep inside; chapter 8 has the failure and the state the other two are made of.
+
+The other limits are section 5.2's, seen from the architecture. *What stands between a port and its adapter* —
+a transaction, a retry, a cache, an audit record — is a decorator around the adapter or a proxy the container
+makes, and has the proxy's roads around it. *Many small calls* stay many: a use case that asks a price for each
+of forty items makes forty calls unless the port is given a second method and the use case is rewritten to call
+it, where a handler that is given the forty questions before it answers any can ask once (chapter 9, the store).
+*A use case that waits* — for a person, for tomorrow — has to give its thread back, and the rest of it becomes
+a state machine written by hand (chapter 11).
+
+**The relation, exactly.** Nothing in the design has to change, and that is the practical point. A team with
+ports has already decided what its effects are. The move is to make the call a value and give the adapter the
+rest: a port's methods become operations, the adapter becomes a handler, and the use case asks instead of
+calling. What that buys is exactly the list above — the policies that were shapes of the use case, the
+decorators, the batching, the waiting — and nothing else. A team that feels none of those has no reason to
+move, and chapter 14 says so at length.
+
+**In my library.** okay-tiny (github.com/okay-effects/okay-tiny, Java 21, one file of 235 lines with no
+dependency) was written to put this to a code base built on ports. Its tests are the claims of this section,
+run: one program under a handler that stops at the first refusal, one that collects them, and one that gives an
+`Optional` (`ScenariosTest`: `theSameProgramTheFirstRefusalStopsIt`,
+`theSameProgramAllRefusalsAreCollectedAndItGoesOn`, `aPartIsLeftWithAValueOfTheHandlers`); a handler that sees
+every operation of an effect and passes it on, which is the decorator (`everyOperationOfAnEffectIsSeen`); one
+operation that holds many items, answered with one query (`oneOperationThatHoldsManyItems`); a use case of
+seven ports with its seven adapters as one function each and no container (`BookingTest`); and twenty-two
+programs the compiler refuses, among them an effect left without a handler (`NegativeTest`). It has not been
+tried on a service of beans and transactions, and its `DESIGN.md` says so.
+
+**On the two halves.** As section 5.2: a vocabulary, and neither half as a value. Ports and adapters is a rule
+about which way dependencies point, not a mechanism, so it has no row of its own in the tables of section
+5.12; its row is "interfaces, injection". What the rule gets right is the first half's *shape* — it finds the
+signature. What it cannot give is what needs the operation as data, or the rest in the adapter's hand.
 
 ## 5.2b Command objects, and interpreters of plain data
 
@@ -606,7 +681,8 @@ code performs, one at a time.
 
 ## 5.12 The two tables
 
-**By halves.** One row for each section, and the seven questions of section 5.0.
+**By halves.** One row for each section but 5.2a, which shares the row of 5.2, and the seven questions of
+section 5.0.
 
 | mechanism | operations are data | the rest is available | delimited | resumptions |
 | --- | --- | --- | --- | --- |
