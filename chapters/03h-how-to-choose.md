@@ -169,4 +169,6 @@ its user's guide.
   backlog.
 
 One choice is followed to the end in the next chapter: chapter 3i takes the tree, on the JVM, with rows in the
-types, and builds it from three nodes to the shape of a library, each step after a run that failed.
+types, and builds it from three nodes to the shape of a library, each step after a run that failed. Chapter 3j
+then takes the same tree into Java, which chapter 3g first credited with no typed answers and no usable row, and
+shows how much of both javac can check.

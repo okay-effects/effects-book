@@ -362,6 +362,20 @@ To check, from this pass:
   of its core for the words, not from its author. Whether each still describes its library is PLAN
   question 77; the bounded replay of okay-faces' hosting is question 69.
 
+## The tree in Java (chapter 3j): what is left
+
+Done 2026-11-27: chapter 3j on okay-tiny at `ece0f7e`; 3b, 3g (the Java section and both tables), 3h, 5.2a and
+13.6 point to it; PLAN questions 79 to 81.
+
+- **Nothing of 3j runs under `run-all.sh`.** Done: a rendering of the bank and a law file in okay-tiny's style
+  under `code/java/`, printing `code/expected.txt` and `code/laws-expected.txt` (question 79), or the chapter
+  keeps citing tests at a commit and says so, as now.
+- **The figures of 3j.7 and 3j.9 are `DESIGN.md`'s**, taken on different days as the kernel changed. Done: one
+  JMH session of the seven lanes at one commit, the command in the text.
+- **No comparison in one session** with `code/java/Tree.java`, okay-java or the reference kernels of 13.6.
+- **The javac messages quoted in 3j** are the first lines `NegativeTest` matches, not whole messages; a newer
+  JDK may word them differently. `NegativeTest` will say so when it does.
+
 ## Chapters not written
 
 - **What the Rust and Goose ports cost** (notes 08, 21) — once planned for an appendix; now a paragraph each in

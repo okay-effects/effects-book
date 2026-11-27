@@ -53,25 +53,35 @@ bracket's body is opaque to an interceptor, by reading the kernel, with no test.
 
 ## Java
 
-**Gives.** Lambdas; sealed interfaces, records and pattern `switch`; virtual threads and scoped values. No
-higher-kinded types, no GADT refinement, no notation for sequencing, no macros, no public continuation.
+**Gives.** Lambdas; sealed interfaces, records and pattern `switch` that must cover a sealed type; intersection
+bounds on type variables; virtual threads and scoped values. No higher-kinded types, no GADT refinement, no
+notation for sequencing, no macros, no public continuation.
 
-**Open.** The tree, for interpreters (`java/Tree.java`, *run here*, one cast). Direct style on virtual threads
-(`java/Loom.java`, *run here*). Capabilities, as ordinary interfaces. State machines only by rewriting
-bytecode.
+**Open.** The tree, for interpreters (`java/Tree.java`, *run here*, one cast) — and, with the answer type read
+off each operation and the row as an intersection bound, for programs too, with no cast in any handler
+(okay-tiny, chapter 3j; not run here). Direct style on virtual threads (`java/Loom.java`, *run here*), or on
+the tree by a javac plugin that rewrites a method into its chain before types are checked (chapter 3j).
+Capabilities, as ordinary interfaces. State machines only by rewriting bytecode.
 
-**Best fit.** Direct style on virtual threads for the programs, with a data-based core where a handler must
-see everything. Java is the clearest case of "the tree is right for the interpreter and wrong for the
-programs".
+**Best fit.** Direct style on virtual threads where one resumption is enough and the programs are many; the
+tree with its row in the type where a handler must see everything, a rest must be resumed twice, or the
+compiler should refuse an effect left unhandled. This chapter used to call Java "the clearest case of 'the tree
+is right for the interpreter and wrong for the programs'". Chapter 3j is why it no longer does: the tree is
+heavy to write in Java, and not wrong for the programs.
 
-**Painful.** Everything about types: "a lambda can't implement a generic method"; a handler erases its state's
-type; rows are positional and moved by hand (`okay-java/README.md`, `okay-effects/README.md`). Multi-shot in
-direct style needs either a different JVM or bytecode rewriting.
+**Painful.** The types, still, but less than I had written. In my earlier libraries "a lambda can't implement a
+generic method", a handler erased its state's type, and rows were positional and moved by hand
+(`okay-java/README.md`, `okay-effects/README.md`). okay-tiny avoids all three: clauses are made by functions
+that take the operation as a witness, a handler's state type is hidden as an existential, and a row is a set.
+What stays (section 3j.11): an effect named twice on each operation, the part's type written where handlers
+are put, a row that is never a type argument, one effect of a class in a row, and javac's messages about
+inference variables. Multi-shot in direct style needs either a different JVM or bytecode rewriting.
 
-**Mine.** Three, which between them are a tour of the options: a `shift0` machine with a row notation
-(`okay-java`); a bytecode transform that saves frames, multi-shot (`okay-java/resumable`); and direct style on
-the JDK's continuation, on threads, or on Espresso (`okay-direct`). Chapters 3d and 3e quote their one shared
-benchmark table.
+**Mine.** Four, which between them are a tour of the options: a `shift0` machine with a row notation
+(`okay-java`); a bytecode transform that saves frames, multi-shot (`okay-java/resumable`); direct style on the
+JDK's continuation, on threads, or on Espresso (`okay-direct`); and the tree in one file, with the row as a set
+and direct style as a javac plugin (`okay-tiny`, chapter 3j). Chapters 3d and 3e quote the first three's one
+shared benchmark table.
 
 ## Kotlin
 
@@ -263,7 +273,7 @@ What each language gives. "—" is absent; "lib" is available through a library 
 | | closures | typed answers | higher-kinded | suspension | transform | notation |
 | --- | --- | --- | --- | --- | --- | --- |
 | Scala | yes | yes (GADT match) | yes | virtual threads | macros | `for` |
-| Java | yes | — | — | virtual threads | bytecode only | — |
+| Java | yes | by witness (3j) | — | virtual threads | bytecode; javac plugin (3j) | — |
 | Kotlin | yes | — | — | `suspend` | `suspend` | — |
 | Rust | yes, owned | — | — | `async` | `async`, macros | — |
 | TypeScript | yes | — | — | generators | — | — |
@@ -283,7 +293,7 @@ And which family is therefore the natural one. **Run** marks a rendering under `
 | | tree | final | capabilities | generators, threads | state machine | built in |
 | --- | --- | --- | --- | --- | --- | --- |
 | Scala | **run** | yes | **run** | yes (threads) | macro | — |
-| Java | **run**, programs painful | — | yes | **run** | bytecode | — |
+| Java | **run**; typed rows: 3j, not run here | — | yes | **run** | bytecode | — |
 | Kotlin | possible | — | **run** (over `suspend`) | — | **run** (`suspend`) | — |
 | Rust | fights ownership | — | yes (traits) | — | **run** | — |
 | TypeScript | yes | encodings | yes | **run** | — | — |

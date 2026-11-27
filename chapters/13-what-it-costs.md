@@ -144,7 +144,9 @@ depth 18: eight to thirty times the price of an answer in place. A further lane 
 sensitive effect through its audit, which takes and resumes the rest each time: 33 to 67 ns per operation
 across the three languages, three runs.
 
-No other library is in that table. It says what these kernels cost, not how they compare.
+No other library is in that table. It says what these kernels cost, not how they compare. okay-tiny, the
+smallest of my JVM kernels, has its own figures in section 3j.9, from its own record and another day; they are
+not comparable with this table either.
 
 Several notes of mine (numbers 02, 09, 14, 20, 21, 22) carry further figures: other
 languages, other roads, earlier states of the libraries. Two are quoted where their subject is, in chapter 10

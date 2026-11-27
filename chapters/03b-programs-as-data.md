@@ -106,7 +106,9 @@ whatever the operation's answer type is. Does the compiler know, inside that cas
   method's type parameter `X` is `Long`. `Tree.java` has one cast, in a helper named `answer`, and every
   handler goes through it. The designs I know for avoiding it use the operation as a witness of its own answer
   type; one of my libraries says so in so many words (`okay-direct/docs/design.md`: "Java, like Kotlin, does
-  not refine a type parameter in a `switch` case").
+  not refine a type parameter in a `switch` case"). Chapter 3j shows that design built: no handler of okay-tiny
+  has a cast, because the answer type is read off the operation where the clause is made, not learned in the
+  `case`.
 - **Rust, Go, C#, Swift, TypeScript:** no GADTs in the sense needed. The usual way out is to erase the answer
   to one dynamic type and check it where it is used, or to give each operation a method that carries its own
   continuation. Of my Rust machine I wrote: "Rust has no GADTs, so [the] loop typed by the answers is not
@@ -115,9 +117,10 @@ whatever the operation's answer type is. Does the compiler know, inside that cas
 The second thing the host decides is the *row*. All four renderings here have a closed set of operations and no
 row in the type: `run` fails on a question nobody answers. Opening the set — letting separately written effects
 combine, and having the type say which are pending — needs a type-level list or union and a way to compute
-with it: type classes and type families in Haskell, implicits or match types in Scala, almost nothing usable in
-Java. This is where libraries of this family spend most of their complexity, and where their error messages
-come from.
+with it: type classes and type families in Haskell, implicits or match types in Scala, and in Java, less than I
+had thought: an intersection bound on a type variable, `<R extends Stock & Refusal>`, is a set that javac
+checks (chapter 3j). This is where libraries of this family spend most of their complexity, and where their
+error messages come from.
 
 ## From a tree to a machine
 
