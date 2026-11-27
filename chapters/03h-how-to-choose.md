@@ -67,7 +67,7 @@ Audit, policy, sandboxing an agent, a journal that can be trusted.
 | if you write | and need one resumption | and need many | and need to store the rest |
 | --- | --- | --- | --- |
 | Scala | context parameters; or a machine under `for` | a machine over data | explicit state |
-| Java | virtual threads | a tree or machine; or bytecode rewriting | explicit state |
+| Java | virtual threads | a tree with the row in the type (3j); or bytecode rewriting | explicit state |
 | Kotlin | `suspend` interfaces in context | a data machine beside it | explicit state |
 | Rust | `async` with your own driver | a `Clone` state machine, by macro | a state machine, serialised |
 | TypeScript | generators | programs as data | explicit state |
@@ -170,5 +170,5 @@ its user's guide.
 
 One choice is followed to the end in the next chapter: chapter 3i takes the tree, on the JVM, with rows in the
 types, and builds it from three nodes to the shape of a library, each step after a run that failed. Chapter 3j
-then takes the same tree into Java, which chapter 3g first credited with no typed answers and no usable row, and
-shows how much of both javac can check.
+then takes the same tree into Java, whose types do much less, and shows what javac still checks: the answer
+of every operation, the set of effects pending, and that a handler leaves no operation out.

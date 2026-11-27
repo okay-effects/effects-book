@@ -57,25 +57,26 @@ bracket's body is opaque to an interceptor, by reading the kernel, with no test.
 bounds on type variables; virtual threads and scoped values. No higher-kinded types, no GADT refinement, no
 notation for sequencing, no macros, no public continuation.
 
-**Open.** The tree, for interpreters (`java/Tree.java`, *run here*, one cast) — and, with the answer type read
-off each operation and the row as an intersection bound, for programs too, with no cast in any handler
-(okay-tiny, chapter 3j; not run here). Direct style on virtual threads (`java/Loom.java`, *run here*), or on
+**Open.** The tree, with the answer type read off each operation and the row as an intersection bound: javac
+checks the answers, the set of effects pending and a handler's completeness, and no handler has a cast
+(okay-tiny, chapter 3j; not run here). `java/Tree.java` (*run here*) is the same tree at its shortest, with a
+closed set of operations and one cast. Direct style on virtual threads (`java/Loom.java`, *run here*), or on
 the tree by a javac plugin that rewrites a method into its chain before types are checked (chapter 3j).
 Capabilities, as ordinary interfaces. State machines only by rewriting bytecode.
 
-**Best fit.** Direct style on virtual threads where one resumption is enough and the programs are many; the
-tree with its row in the type where a handler must see everything, a rest must be resumed twice, or the
-compiler should refuse an effect left unhandled. This chapter used to call Java "the clearest case of 'the tree
-is right for the interpreter and wrong for the programs'". Chapter 3j is why it no longer does: the tree is
-heavy to write in Java, and not wrong for the programs.
+**Best fit.** Direct style on virtual threads where one resumption is enough and existing blocking code must
+be kept; the tree with its row in the type where a handler must see everything, a rest must be resumed twice,
+or the compiler should refuse an effect left unhandled. The tree is heavy to write in Java — chains of
+`flatMap`, or the plugin — and it is not weaker for the programs than for the interpreter.
 
-**Painful.** The types, still, but less than I had written. In my earlier libraries "a lambda can't implement a
-generic method", a handler erased its state's type, and rows were positional and moved by hand
-(`okay-java/README.md`, `okay-effects/README.md`). okay-tiny avoids all three: clauses are made by functions
-that take the operation as a witness, a handler's state type is hidden as an existential, and a row is a set.
-What stays (section 3j.11): an effect named twice on each operation, the part's type written where handlers
-are put, a row that is never a type argument, one effect of a class in a row, and javac's messages about
-inference variables. Multi-shot in direct style needs either a different JVM or bytecode rewriting.
+**Painful.** Writing, more than typing. Design choices decide most of it: where a clause is made by a function
+of one operation the answer is typed; where the state is hidden as an existential it is not erased; where the
+row is a set it is never moved by hand. My earlier libraries made the other choices and paid for them — "a
+lambda can't implement a generic method", a handler that erased its state's type, rows positional and moved by
+hand (`okay-java/README.md`, `okay-effects/README.md`). What Java costs whatever the design (section 3j.11): an
+effect named twice on each operation, the part's type written where handlers are put, a row that is never a
+type argument, one effect of a class in a row, and javac's messages about inference variables. Multi-shot in
+direct style needs either a different JVM or bytecode rewriting; on the tree it needs nothing.
 
 **Mine.** Four, which between them are a tour of the options: a `shift0` machine with a row notation
 (`okay-java`); a bytecode transform that saves frames, multi-shot (`okay-java/resumable`); direct style on the
@@ -310,5 +311,7 @@ And which family is therefore the natural one. **Run** marks a rendering under `
 One pattern is visible in the second table and worth saying aloud. The languages with the richest types
 (Scala, Haskell, Lean) take the tree and the final encoding naturally. The languages with the strongest
 suspension mechanisms (Kotlin, Go, Java, C#, Python, TypeScript, OCaml) take direct style naturally, and
-are one-shot. The languages without a collector (Rust, Zig) take the state machine. Very little of this is
-about taste. It is the consequence of what each language already built for other reasons.
+are one-shot. The languages without a collector (Rust, Zig) take the state machine. Java belongs to two rows
+of this: with sealed types, exhaustive `switch` and intersection bounds it also takes the tree with a typed
+row (chapter 3j), at the price of writing the chains. Very little of this is about taste. It is the
+consequence of what each language already built for other reasons.

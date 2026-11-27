@@ -210,7 +210,10 @@ takes the rest and resumes it once cost 57.1 ns through saved frames, against 11
 continuation and 20.1 ns on a machine over a tree.
 
 In Scala, `dotty-cps-async` is a macro of this family for a different target: it turns direct-style code
-inside an `async` block into calls on a monad.
+inside an `async` block into calls on a monad. Java has no macros, but javac takes plugins, and a plugin can
+do the same before types are checked: okay-tiny's turns `$(program)` in a method marked `@Direct` into the
+`flatMap` chain over its tree, so the row and the inference are javac's (chapter 3j). It works on javac's
+internal classes, as Lombok does. So in Java the transform need not be applied after the compiler.
 
 ## The handler, in this family
 

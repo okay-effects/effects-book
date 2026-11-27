@@ -249,16 +249,16 @@ the renderings under `code/`.
   what the other families do at each step; the end point named as my `Free.scala`. Written 2026-11-18. Code:
   `code/scala/path/stage1.scala` to `stage4.scala`, five mains, under `run-all.sh`.
 - ✓ **3j The same tree in Java, with the row in the type** — okay-tiny (Java 21, one file, 290 lines of code)
-  as evidence against what 3b and 3g first said of Java: the answer type read off each operation, which is
+  as evidence of what Java gives this family: the answer type read off each operation, which is
   its own witness (`on`, `answer`), so no handler has a cast; the row as an intersection bound on a type
   variable, a set that javac checks; completeness by a `switch` over a sealed effect; a handler as a fold and
   a monad, its state's type hidden as an existential; the machine (one loop, two linked stacks, the rest as two
   pointers, put back anew, so a rest resumed twice has its own states without replay, which is §4.6's law by
   construction); each node forced by a measurement; `leave`, `ensuring`, `keep` (asynchrony with no more), the
   observer as `run`'s second argument; costs; the family's TCK digest; Spring; direct style as a javac plugin;
-  what it corrects in 3b and 3g, and what Java still costs. Written 2026-11-27. Nothing of it under `code/`: it
-  cites okay-tiny's tests by name at commit `ece0f7e` (88 + 19 + 6 tests, all passing that day). 3b, 3g, 3h,
-  5.2a and 13.6 were changed to point to it.
+  what Java gives this family and what it costs. Written 2026-11-27. Nothing of it under `code/`: it
+  cites okay-tiny's tests by name at commit `ece0f7e` (88 + 19 + 6 tests, all passing that day). 3, 3b, 3e,
+  3g, 3h, 5.2a and 13.6 were rewritten where they had said less of Java, and point to it.
 - ✓ **4 The laws** — what must hold of any implementation, in three groups: laws of the idea (sequencing and
   the algebraic property; a handler is a fold, so handling a sequence is handling its parts; a handler is
   offered every question of its effect and no other's; a question nobody answers has no value and, with
@@ -668,9 +668,10 @@ From chapter 3j, okay-tiny (2026-11-27):
     another repository: it cites okay-tiny's tests at one commit and runs nothing under `code/`. Keep it so, or
     bring a rendering of the bank and a law file in okay-tiny's style under `code/java/` (the forty lines' rule
     that the book's code takes no dependency would mean a copy of `Fx.java`, 290 lines)?
-80. Sections 3b and 3g were corrected in place (the cast, "almost nothing usable" for rows, "wrong for the
-    programs", "bytecode only") with a pointer to 3j, and 3j quotes them "as first written". Is that the way you
-    want a later result to correct an earlier chapter, or should the old sentences stay and 3j alone correct them?
+80. SETTLED 2026-11-27 by the author: what a later result shows wrong is rewritten in place, as if it had
+    been known from the start; no "as first written", no history of the mistake in the text. Done for Java in
+    chapters 3, 3b, 3e, 3g (the section, the pattern paragraph and both tables), 3h (the table and the
+    pointer), 5.2a, and 3j itself (its opening and 3j.11 state the results, not the corrections).
 81. Section 3j.6 says okay-tiny keeps every handler's state as part of the rest by construction, so §4.6's law
     holds for any handler written with `folding`, and that state captured outside, in a mutable object, is
     still shared. §4.10's table of the laws by rendering has no row for it. Add one (from okay-tiny's tests), or

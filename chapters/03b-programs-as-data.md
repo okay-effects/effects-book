@@ -102,13 +102,14 @@ whatever the operation's answer type is. Does the compiler know, inside that cas
 - **Scala 3: yes in a `match` on a GADT**, which is how the handlers of `code/scala/examples.scala` pass an
   answer to `rest` without a cast. `handle` in `kernel.scala` has none either: where the answer type is
   hidden inside the node, a type pattern, `case ask: Prog.Ask[x, a]`, gives it a name (section 3.4).
-- **Java: no.** A `switch` over a sealed interface narrows the *value* to `Balance` and does not learn that the
-  method's type parameter `X` is `Long`. `Tree.java` has one cast, in a helper named `answer`, and every
-  handler goes through it. The designs I know for avoiding it use the operation as a witness of its own answer
-  type; one of my libraries says so in so many words (`okay-direct/docs/design.md`: "Java, like Kotlin, does
-  not refine a type parameter in a `switch` case"). Chapter 3j shows that design built: no handler of okay-tiny
-  has a cast, because the answer type is read off the operation where the clause is made, not learned in the
-  `case`.
+- **Java: not in the `case`, and it need not be.** A `switch` over a sealed interface narrows the *value* to
+  `Balance` and does not learn that the method's type parameter `X` is `Long` ("Java, like Kotlin, does not
+  refine a type parameter in a `switch` case", `okay-direct/docs/design.md`). `Tree.java`, the shortest
+  rendering, takes the short road: one cast, in a helper named `answer`, and every handler goes through it.
+  The road without a cast uses the operation as a witness of its own answer type: the clause is made by a
+  function that takes the operation, `answer(op, value)` with `op` an `Op<X, F>`, so `X` is fixed where the
+  clause is made and never has to be learned in the `case`. okay-tiny is built that way, and none of its
+  handlers has a cast (chapter 3j).
 - **Rust, Go, C#, Swift, TypeScript:** no GADTs in the sense needed. The usual way out is to erase the answer
   to one dynamic type and check it where it is used, or to give each operation a method that carries its own
   continuation. Of my Rust machine I wrote: "Rust has no GADTs, so [the] loop typed by the answers is not
@@ -117,9 +118,9 @@ whatever the operation's answer type is. Does the compiler know, inside that cas
 The second thing the host decides is the *row*. All four renderings here have a closed set of operations and no
 row in the type: `run` fails on a question nobody answers. Opening the set — letting separately written effects
 combine, and having the type say which are pending — needs a type-level list or union and a way to compute
-with it: type classes and type families in Haskell, implicits or match types in Scala, and in Java, less than I
-had thought: an intersection bound on a type variable, `<R extends Stock & Refusal>`, is a set that javac
-checks (chapter 3j). This is where libraries of this family spend most of their complexity, and where their
+with it: type classes and type families in Haskell, implicits or match types in Scala, and in Java an
+intersection bound on a type variable, `<R extends Stock & Refusal>`, which is a set that javac checks
+(chapter 3j). This is where libraries of this family spend most of their complexity, and where their
 error messages come from.
 
 ## From a tree to a machine

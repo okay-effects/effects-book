@@ -113,8 +113,10 @@ question is answered with, call it `x`". From there the compiler knows that `ask
 `ask.rest` takes an `x`, so `handled` is a function from `x`, and a line that passed the rest an answer of
 another type would not compile. There is no cast in the kernel. The handlers of section 3.6 lean on the same
 thing from the other side: inside `case Balance(a)` the compiler has learnt that this question's `X` is
-`Long`, and `rest` takes a number. Without it one would say `Any` and cast, as the Java rendering does, once;
-the Haskell and Lean renderings need none, because there too a match on an operation tells the compiler the
+`Long`, and `rest` takes a number. Without it one would say `Any` and cast, as the short Java rendering does,
+once — Java does not refine in a `case`, and a Java design that types the answer reads it off the operation
+where the clause is made instead (chapter 3j); the Haskell and Lean renderings need none, because there too a
+match on an operation tells the compiler the
 type of its answer (chapter 3b). This is the reader's first meeting with a mechanism the book uses again: in
 chapter 3i a match on *where an effect stands in a row* tells the compiler which handler an operation
 belongs to (§3i.4).

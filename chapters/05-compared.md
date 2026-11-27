@@ -220,10 +220,10 @@ collects them, and one that gives an `Optional` (`ScenariosTest`: `theSameProgra
 every operation of an effect and passes it on, which is the decorator (`everyOperationOfAnEffectIsSeen`); one
 operation that holds many items, answered with one query (`oneOperationThatHoldsManyItems`); a use case of
 seven ports with its seven adapters as one function each and no container (`BookingTest`); and twenty-four
-programs the compiler refuses, among them an effect left without a handler (`NegativeTest`). Since this
-paragraph was first written it has also run in a small Spring Boot service with beans, a database, Spring's
-transactions and a controller (`spring-sample`, six tests), with no change to the kernel; it has not been tried
-on a large code base or by a team, and its `DESIGN.md` says so.
+programs the compiler refuses, among them an effect left without a handler (`NegativeTest`). It also runs in
+a small Spring Boot service with beans, a database, Spring's transactions and a controller (`spring-sample`,
+six tests), with no change to the kernel; it has not been tried on a large code base or by a team, and its
+`DESIGN.md` says so.
 
 **On the two halves.** As section 5.2: a vocabulary, and neither half as a value. Ports and adapters is a rule
 about which way dependencies point, not a mechanism, so it has no row of its own in the tables of section

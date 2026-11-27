@@ -364,7 +364,8 @@ To check, from this pass:
 
 ## The tree in Java (chapter 3j): what is left
 
-Done 2026-11-27: chapter 3j on okay-tiny at `ece0f7e`; 3b, 3g (the Java section and both tables), 3h, 5.2a and
+Done 2026-11-27: chapter 3j on okay-tiny at `ece0f7e`; the Java claims of 3, 3b, 3e, 3g, 3h and 5.2a rewritten in
+place (question 80, settled); 3b, 3g (the Java section and both tables), 3h, 5.2a and
 13.6 point to it; PLAN questions 79 to 81.
 
 - **Nothing of 3j runs under `run-all.sh`.** Done: a rendering of the bank and a law file in okay-tiny's style

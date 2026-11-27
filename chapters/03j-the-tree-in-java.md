@@ -1,15 +1,11 @@
 # 3j · The same tree in Java, with the row in the type
 
-Two passages earlier in this book said, as first written, what Java cannot do for this family. Section 3b: in
-Java a `switch` "narrows the *value* … and does not learn that the method's type parameter `X` is `Long`", so a
-handler needs a cast, and for the row there is "almost nothing usable in Java". Chapter 3g: "Java is the
-clearest case of 'the tree is right for the interpreter and wrong for the programs'", and what is painful is
-"everything about types". Both were true of what had been built when they were written, `code/java/Tree.java`
-and my earlier Java libraries. This chapter is about a library written afterwards to test them, and what it
-found: in Java 21, with no compiler plugin and no bytecode rewriting, the tree can say the type of every answer
-and the set of effects a program may ask, the compiler refuses a program whose effects are not all handled and
-a handler that leaves an operation out, and no user code has a cast. What is left of the two passages is
-narrower and is stated in section 3j.11.
+Java has no higher-kinded types, does not refine a type parameter in a `case`, and has no notation for
+sequencing: of the languages in chapter 3g it is the one whose types seem to give this family least. This
+chapter shows how much they give all the same. In Java 21, with no compiler plugin and no bytecode rewriting,
+the tree can say the type of every answer and the set of effects a program may ask; the compiler refuses a
+program whose effects are not all handled and a handler that leaves an operation out; and no handler has a
+cast. What Java costs is real, and is mostly in the writing, not in what can be checked (section 3j.11).
 
 **Whose implementation this is.** okay-tiny (github.com/okay-effects/okay-tiny, Apache 2.0): one file,
 `okay.tiny.Fx`, 290 lines of code, no dependency, no threads, no reflection; a second file, `Std`, 212 lines,
@@ -77,9 +73,9 @@ static <B, R> Handler<Stock, B, B, R> stock(Map<String, Integer> left) {
 `answer(Op<X, F> op, X value)` and its general form `on(Op<X, F> op, Clause<X, S, B, R> clause)` take the
 operation as a witness of its own answer type: `X` is inferred from `r`, and the value, or the `k` the clause
 is given, is checked against it: a `String` given as the answer of an operation whose answer is a `Long`
-does not compile (`WrongAnswer`: *String cannot be converted to Long*). Section 3b said "the designs I know for avoiding
-it use the operation as a witness of its own answer type"; this is that design, and it removes the cast from
-every handler.
+does not compile (`WrongAnswer`: *String cannot be converted to Long*). This is the road without a cast that
+section 3b names, built: the refinement Java lacks is never needed, because no handler has to learn the answer's
+type in a `case`.
 
 What the arms of the `switch` give is a `Case<F, S, B, R>`, a type in which `X` does not appear, so that arms of
 different answer types are of one type. `Case` is sealed, over four private records that do have `X` (an
@@ -111,8 +107,8 @@ Three signatures make this work.
   is refused there (`RunWithEffectsKept`: *no suitable method found for run*).
 
 The order in which the row is an intersection does not matter: `Stock & Refusal` and `Refusal & Stock` are the
-same bound. Chapter 3g's complaint about my other Java libraries — "rows are positional and moved by hand" — is
-a complaint about a design that encoded the row as a list of places; a set needs no moving.
+same bound. My other Java libraries encoded the row as a list of places, and there "rows are positional and
+moved by hand" (`okay-java/README.md`); a set needs no moving.
 
 Handlers are put on a part by a builder whose order is forced by inference:
 
@@ -339,27 +335,26 @@ rewritten, and the whole body is put off with `defer`. Because javac attributes 
 inference and the error messages are javac's, and the rest after a `$` is a value like any other — a handler
 may leave it or go on with it twice (`DirectTest.everyWay`). Where it cannot rewrite a `$` — inside a lambda,
 a `while`, a branch of `?:`, a `try` with a `catch` — it is an error at that line, never a failure at run time
-(ten programs under `direct/src/test/negative`). It depends on javac's internal classes, as Lombok does. This
-adds a road to chapter 3g's table: in Java a transformation need not rewrite bytecode, it can rewrite the
-source tree, and then the types are checked after it.
+(ten programs under `direct/src/test/negative`). It depends on javac's internal classes, as Lombok does. In
+Java, then, a transformation need not rewrite bytecode: it can rewrite the source tree, and the types are
+checked after it (chapters 3e and 3g).
 
-## 3j.11 What this corrects, and what Java still costs
+## 3j.11 What Java gives this family, and what it costs
 
-What the earlier chapters said, as first written, against what okay-tiny shows:
+What the types check, with no plugin and no cast in any handler:
 
-- **"A Java handler needs a cast"** to give the rest its answer (§3b). No handler of okay-tiny has one: the
-  operation is the witness (`on`, `answer`). The refinement is still absent; the cast is no longer needed.
-- **For rows, "almost nothing usable in Java"** (§3b). A row is an intersection bound, a set, checked by javac,
-  together with a handler's completeness and what its clauses may ask: 24 refusals.
-- **Rows "positional and moved by hand"; "a handler erases its state's type"** (§3g, *Painful*). True of a row
-  of places; a set needs no moving. The state's type is hidden as an existential, not erased.
-- **The tree "wrong for the programs"** (§3g). Heavy to write — chains of `flatMap`, or a javac plugin for
-  direct style — not wrong.
-- **Transformation "bytecode only"** (§3g, first table). Also the source tree, by a javac plugin.
+- **the answer of every operation**: the operation is the witness of its own answer type (`on`, `answer`); the
+  refinement Java lacks is never needed;
+- **the row**: an intersection bound, a set, never moved by hand; an operation outside it, an effect left with
+  no handler, and a program run with effects still pending are refused;
+- **a handler's completeness**, by the exhaustive `switch` over a sealed effect;
+- **what a handler's own clauses may ask**: only the row that stays outside its part;
+- **a handler's state**, hidden as an existential from what is around it, never erased to `Object` in user
+  code.
 
-Sections 3b and 3g now say so and point here.
+Twenty-four programs that javac must refuse are the evidence, each for its own reason.
 
-What Java still costs, and the library lists in its own pitfalls:
+What Java costs whatever the design, and the library lists in its own pitfalls:
 
 - the effect is named twice on each operation's record;
 - the part's value type is written at `row()`, and a generic effect's types are said at the start of a chain
