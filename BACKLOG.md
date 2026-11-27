@@ -374,9 +374,6 @@ chapter 4 (question 81). `run-all.sh` exits 0 with them.
   of 13.6. The book's `rows` kernel is not measured at all, on purpose: it is made to be read.
 - **The javac messages** that `run-all.sh` requires of `rows/refused/` are a few words each; a newer JDK may
   word them differently, and the script will say so.
-- **The hole of §3j.3 in okay-tiny** (handlers innermost first; a clause that runs its rest compiles and fails)
-  is recorded in okay-tiny's `DESIGN.md`. Fixing it there changes the order of `handler(..)` calls for every
-  user: a decision for that library, not for the book.
 - **The generated laws** (1,000 programs) exist for the Scala trees only, not for `rows`.
 
 ## Chapters not written

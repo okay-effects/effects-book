@@ -212,7 +212,7 @@ calling. What that buys is exactly the list above — the policies that were sha
 decorators, the batching, the waiting — and nothing else. A team that feels none of those has no reason to
 move, and chapter 14 says so at length.
 
-**In my library.** okay-tiny (github.com/okay-effects/okay-tiny, Java 21, one file of 290 lines of code with
+**In my library.** okay-tiny (github.com/okay-effects/okay-tiny, Java 21, one file of 424 lines of code with
 no dependency; chapter 3j is about it) was written to put this to a code base built on ports. Its tests are
 the claims of this section, run: one program under a handler that stops at the first refusal, one that
 collects them, and one that gives an `Optional` (`ScenariosTest`: `theSameProgramTheFirstRefusalStopsIt`,

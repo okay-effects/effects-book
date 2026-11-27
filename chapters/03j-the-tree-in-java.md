@@ -16,11 +16,11 @@ made as chapter 3's forty lines are made, for reading and not for speed: it is r
 anew for every handler it passes. Every listing in sections 3j.2 to 3j.6 is from these files.
 
 **Where it comes from.** It is distilled from okay-tiny (github.com/okay-effects/okay-tiny, Apache 2.0), my
-smallest JVM library: one file of 290 lines of code for Java 21, a loop in place of the recursion, and what a
-library needs beside the kernel — leaving, closing, asynchrony, an observer, the usual effects, direct style as
-a plugin of javac. Sections 3j.7 to 3j.10 are about the library and cite its tests by name at commit
-`ece0f7e` (2026-11-27): 88 tests of the kernel, 19 of the plugin and 6 of a Spring Boot sample, all passing
-that day. One thing differs on purpose between the two, and section 3j.3 says which and why.
+smallest JVM library: one file of 424 lines of code for Java 21, a loop of typed moves in place of the
+recursion, and what a library needs beside the kernel — leaving, closing, asynchrony, an observer, the usual
+effects, direct style as a plugin of javac. Sections 3j.7 to 3j.10 are about the library and cite its tests by name at commit
+`d991227` (2026-11-27): 92 tests of the kernel, 19 of the plugin and 10 of a Spring Boot sample, all passing
+that day. The rule of section 3j.3 is the library's too.
 
 ## 3j.1 What Java gives, and what it does not
 
@@ -183,13 +183,13 @@ static <A, R extends Accounts> Handler<Accounts, Void, A, A, R> journal(List<Str
 ```
 
 Both halves of the rule are needed, and a program that compiles and fails shows each. Put innermost first,
-as okay-tiny puts them, every handler's row is typed as the row outside all of them. A clause there that runs
+as okay-tiny first put them, every handler's row is typed as the row outside all of them. A clause there that runs
 its rest by itself — `Fx.run(k.apply(x, s))`, in a handler declared with an empty row — compiles, and fails
 when run with *no handler for Now*, because the rest still asks the clock handled around it (a program run
 against okay-tiny at `ece0f7e`; it is not in the library's tests). Put outermost first but typed `? super W`,
 a handler could still say its row was empty inside a handler of the clock, and run its rest the same way.
-With the row exactly `W` that program is refused (`refused/RunsTheRest.java`). okay-tiny's `DESIGN.md` lists
-the hole among what is open.
+With the row exactly `W` that program is refused (`refused/RunsTheRest.java`; in okay-tiny,
+`RestRunByItself` under `src/test/negative`).
 
 ## 3j.4 Completeness is the compiler's
 
@@ -272,7 +272,10 @@ What the language cannot stop is state *captured* from outside, like the bank's 
 The kernel is recursive, as the forty lines are: a long program overflows the stack, and every handler a node
 passes makes the node anew. okay-tiny is the same model as a loop, and the next four sections are about it.
 
-**The library's machine.** In okay-tiny `run` is one loop of about ninety lines. The rest of the program is a
+**The library's machine.** In okay-tiny `run` is a loop of one line, `while (!(at instanceof Done<Z> done)) at =
+at.next(this)`, over moves of three kinds: a program to run, a value to give, the end. A move holds the steps
+that take its value, `Rest<A, Y>`, and the parts those steps end in, `Around<Y, Z>`, and javac checks that
+the three fit: no register of the machine is an `Object`. The rest of the program is a
 stack of parts, one for each handler in force, each a stack of steps; taking the rest is two pointers, and
 putting it back makes the parts anew, so a rest gone on with twice is two independent runs
 (`theRestIsGoneOnWithTwice`, `aStateIsAValueOfEachWay`, `partsDeepOneInAnotherKeepTheirStatesOnEveryWay`). No
@@ -307,6 +310,13 @@ rest held them. The fourth: as `pure(null).flatMap(..)` a put-off call was two t
 more, without a row of its own: clauses and steps became sealed types of records, each with what it needs and
 the hidden type an existential, where they had been one record with flags and `Object` fields — fewer casts,
 and a step 2 to 6 ns faster.
+
+The machine itself went the same way, and that one cost. As one loop over registers of type `Object`, with a
+cast wherever a hidden type was opened, it answered in place in 5.0 ns; as moves typed throughout, in 6.0,
+with the same 64 bytes made an operation, while a state costs the same or less. Of the nanosecond, a third
+was the way back to the loop after each answer and went when an answer was let go on within its move; 0.3 is
+the operation kept for the failure's note; the rest was not found (`DESIGN.md` §5). What it bought is that
+a move which gives the wrong thing to the wrong step does not compile.
 
 And one change that was about depth, not speed: when the states were in an array that every new part copied,
 parts nested in parts cost the square of their depth — 10^5 levels, 0.6 s; with the states in the parts,
@@ -353,13 +363,13 @@ else running.
 
 | | ns |
 | --- | ---: |
-| `answer`, the handler the innermost of seven | 5.0 |
-| `answer`, the handler the outermost of seven | 11.6 |
+| `answer`, the handler the innermost of seven | 6.0 |
+| `answer`, the handler the outermost of seven | 13.7 |
 | an answer and two `map` | 17 or 22, from one run to the next |
-| a counter (a state that moves on at every operation), alone | 9.0 |
-| the counter the innermost of seven | 9.6 |
-| the counter the outermost of three | 11.4 |
-| the counter the outermost of seven | 16.4 |
+| a counter (a state that moves on at every operation), alone | 9.4 |
+| the counter the innermost of seven | 9.4 |
+| the counter the outermost of three | 11.7 |
+| the counter the outermost of seven | 17.0 |
 
 The same document gives the limit of these figures: with another process busy, the outermost counter gave 33
 to 41 ns from one run to the next, for this kernel and the one before it alike, so two kernels are compared by
@@ -382,15 +392,18 @@ injection in four steps, its callers unchanged, and run the service before and a
 Section 5.2a cites it.
 
 **Spring.** `spring-sample/`: a Spring Boot service with beans, a database, Spring's transactions and a
-controller (six tests). It found nothing to change in the kernel: a program runs on the thread that called
-`run`, so what Spring binds to a thread is where the handlers expect it, and `ensuring` was enough for a
-transaction around a part.
+controller, the accounts answered once through `JdbcTemplate` and once through JPA (ten tests). It found
+nothing to change in the kernel: a program runs on the thread that called `run`, so what Spring binds to a
+thread — a transaction, and JPA's persistence context with it — is where the handlers expect it, and
+`ensuring` was enough for a transaction around a part. A handler changes two entities and saves nothing; the
+commit writes them after the program has ended.
 
-**Direct style, beside the kernel.** `okay-tiny-direct` is a plugin of javac (369 lines) that rewrites a method
+**Direct style, beside the kernel.** `okay-tiny-direct` is a plugin of javac (385 lines) that rewrites a method
 marked `@Direct` into the chain it stands for, after parsing and before types are attributed: `T x = $(p);
 rest` becomes `bind(p, (T x) -> { rest })`, an `if`, a for-each and `try`-`finally` (as `ensuring`) are
 rewritten, and the whole body is put off with `defer`. Because javac attributes the chain, the row, the
-inference and the error messages are javac's, and the rest after a `$` is a value like any other — a handler
+inference and the error messages are javac's (every step is given the method's row as a type, so an effect
+the row has not is refused at its own `$`), and the rest after a `$` is a value like any other — a handler
 may leave it or go on with it twice (`DirectTest.everyWay`). Where it cannot rewrite a `$` — inside a lambda,
 a `while`, a branch of `?:`, a `try` with a `catch` — it is an error at that line, never a failure at run time
 (ten programs under `direct/src/test/negative`). It depends on javac's internal classes, as Lombok does. In
@@ -406,8 +419,7 @@ What the types check, in `code/java/rows/` and in okay-tiny alike, with no plugi
 - **the row**: an intersection bound, a set, never moved by hand; an operation outside it, an effect left with
   no handler, and a program run with effects still pending are refused;
 - **a handler's completeness**, by the exhaustive `switch` over a sealed effect;
-- **what a handler's own clauses may ask**: in the book's kernel, exactly what is around it; in okay-tiny, only
-  the row outside all the handlers put together, which is less than the truth (section 3j.3).
+- **what a handler's own clauses may ask**: exactly what is around it (section 3j.3).
 
 The evidence is programs javac must refuse: eight under `code/java/rows/refused/`, run by `run-all.sh`, and
 twenty-four in okay-tiny's `src/test/negative`, each for its own reason.
@@ -418,12 +430,16 @@ What Java costs whatever the design:
 - the result's type is written where the handlers are put, and a row is said by hand where javac has no target
   for it (the branches of `?:`, the start of a chain of a generic effect);
 - a row of several effects is never a type argument, only a method's type variable;
-- one effect of a class in a row: two states are told apart by where their handlers are put, not by type;
+- a generic effect is not specialized by `extends`: a type variable cannot have `State<Integer>` and
+  `State<String>` among its bounds. In okay-tiny the usual effects are templates, and an effect is said of one
+  in a line — `interface Count { State<Integer, Count> state = State.of(Count.class); }` — a type of its own
+  in the row, so two states are two types (`StdTest`);
 - javac's messages speak of inference variables, far from the cause;
 - the refinement is paid once inside the kernel: one cast in `Fx.java`, guarded by the test that a clause was
-  made for the operation asked. okay-tiny, a loop with registers of one type, has seven places marked
-  unchecked, guarded the same way and by the rule that its clauses and handlers can be made only through its
-  functions.
+  made for the operation asked. okay-tiny has thirteen places marked unchecked — the row, a phantom, said
+  anew; a hidden type opened by an identity; the one end of every stack of steps — and none in the moves of its
+  machine; they are guarded the same way and by the rule that its clauses and handlers can be made only through
+  its functions.
 
 And what no type here says: that `done` and the clauses make a lawful monad. A clause that calls `k` twice and
 keeps one result passes the types. Chapter 4's laws are the author's to keep, here as everywhere but Lean; for
@@ -433,9 +449,8 @@ this kernel they are the twelve lines of `Laws.java`.
 
 - The book's kernel is recursive and makes a node anew for every handler it passes; nothing of it was measured.
   The library's figures (3j.9) are of one machine, from its own record, not re-run here.
-- Neither has been tried on a large code base, with JPA, or by a team other than me and my agents.
+- Neither has been tried on a large code base, or by a team other than me and my agents.
 - No benchmark compares okay-tiny with `Tree.java`, with okay-java, or with the reference kernels in one session.
-- The hole of section 3j.3 is closed in the book's kernel and open in okay-tiny.
 
 ## What was run
 
@@ -444,7 +459,7 @@ prints `code/laws-expected.txt` with line 7 as *does not compile*; the eight pro
 `code/java/rows/refused/` are refused by javac for the words on their first lines. `javac -Xlint:all` on the
 three files gives no warning. Java 26, 2026-11-27.
 
-In okay-tiny at `ece0f7e`, Java 21: `./gradlew test` — 88 tests of the kernel (`ScenariosTest`, `StdTest`,
+In okay-tiny at `d991227`, Java 21: `./gradlew test` — 92 tests of the kernel (`ScenariosTest`, `StdTest`,
 `AsyncTest`, `TckTest`, `BookingTest`, `GuideTest`, `PortsTest`, `ReadmeTest`, and `NegativeTest` over the 24
-programs of `src/test/negative`), 19 of `direct/`, 6 of `spring-sample/`; all passed, 2026-11-27. The program
-of section 3j.3 that compiles there and fails was run against the same commit.
+programs of `src/test/negative`), 19 of `direct/`, 10 of `spring-sample/`; all passed, 2026-11-27. The program
+of section 3j.3 that compiled and failed was run against `ece0f7e`, where handlers were put innermost first.
