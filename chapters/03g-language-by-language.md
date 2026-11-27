@@ -59,7 +59,7 @@ notation for sequencing, no macros, no public continuation.
 
 **Open.** The tree, with the answer type read off each operation and the row as an intersection bound: javac
 checks the answers, the set of effects pending and a handler's completeness, and no handler has a cast
-(okay-tiny, chapter 3j; not run here). `java/Tree.java` (*run here*) is the same tree at its shortest, with a
+(`java/rows`, *run here*; chapter 3j). `java/Tree.java` (*run here*) is the same tree at its shortest, with a
 closed set of operations and one cast. Direct style on virtual threads (`java/Loom.java`, *run here*), or on
 the tree by a javac plugin that rewrites a method into its chain before types are checked (chapter 3j).
 Capabilities, as ordinary interfaces. State machines only by rewriting bytecode.
@@ -294,7 +294,7 @@ And which family is therefore the natural one. **Run** marks a rendering under `
 | | tree | final | capabilities | generators, threads | state machine | built in |
 | --- | --- | --- | --- | --- | --- | --- |
 | Scala | **run** | yes | **run** | yes (threads) | macro | — |
-| Java | **run**; typed rows: 3j, not run here | — | yes | **run** | bytecode | — |
+| Java | **run**, and with rows (3j) | — | yes | **run** | bytecode | — |
 | Kotlin | possible | — | **run** (over `suspend`) | — | **run** (`suspend`) | — |
 | Rust | fights ownership | — | yes (traits) | — | **run** | — |
 | TypeScript | yes | encodings | yes | **run** | — | — |

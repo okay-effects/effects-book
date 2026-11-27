@@ -248,17 +248,21 @@ the renderings under `code/`.
   constructor and type parameter exists;
   what the other families do at each step; the end point named as my `Free.scala`. Written 2026-11-18. Code:
   `code/scala/path/stage1.scala` to `stage4.scala`, five mains, under `run-all.sh`.
-- ✓ **3j The same tree in Java, with the row in the type** — okay-tiny (Java 21, one file, 290 lines of code)
-  as evidence of what Java gives this family: the answer type read off each operation, which is
-  its own witness (`on`, `answer`), so no handler has a cast; the row as an intersection bound on a type
-  variable, a set that javac checks; completeness by a `switch` over a sealed effect; a handler as a fold and
-  a monad, its state's type hidden as an existential; the machine (one loop, two linked stacks, the rest as two
-  pointers, put back anew, so a rest resumed twice has its own states without replay, which is §4.6's law by
-  construction); each node forced by a measurement; `leave`, `ensuring`, `keep` (asynchrony with no more), the
-  observer as `run`'s second argument; costs; the family's TCK digest; Spring; direct style as a javac plugin;
-  what Java gives this family and what it costs. Written 2026-11-27. Nothing of it under `code/`: it
-  cites okay-tiny's tests by name at commit `ece0f7e` (88 + 19 + 6 tests, all passing that day). 3, 3b, 3e,
-  3g, 3h, 5.2a and 13.6 were rewritten where they had said less of Java, and point to it.
+- ✓ **3j The same tree in Java, with the row in the type** — the tree of chapter 3 for a language without GADTs
+  or higher kinds, as code that runs: `code/java/rows/` (`Fx.java`, 79 lines of code, one cast; `Bank.java`,
+  the scenario; `Laws.java`, the twelve laws with line 7 the compiler's; eight programs under `refused/` javac
+  must refuse), under `run-all.sh`, not counted among the sixteen renderings (like the path of 3i). The answer
+  type read off each operation, its own witness (`on`, `answer`), so no handler has a cast and the kernel has
+  one; the row as an intersection bound, a set that javac checks, made anew and never cast where it changes;
+  handlers put outermost first, each with exactly the row around it, which closes a hole (a clause that runs
+  its rest compiles and fails when its row is less than the truth: shown against okay-tiny, and against
+  `? super W`); completeness by a `switch` over a sealed effect; a handler as a fold and a monad, its state a
+  value given to the rest, so §4.6's law holds by construction. Then okay-tiny, the library it is distilled
+  from (Java 21, 290 lines), cited by test at `ece0f7e` (88 + 19 + 6 tests): its loop, each node forced by a
+  measurement, `leave`, `ensuring`, `keep`, the observer, costs, the family's TCK digest, Spring, direct style
+  as a javac plugin. What Java gives this family and what it costs. Written 2026-11-27; the code the same day,
+  on the author's word that the book's version be minimal and fully typed, like the forty lines. 3, 3b, 3e, 3g,
+  3h, 4 (§4.4, §4.6, §4.9, §4.10), 5.2a and 13.6 point to it.
 - ✓ **4 The laws** — what must hold of any implementation, in three groups: laws of the idea (sequencing and
   the algebraic property; a handler is a fold, so handling a sequence is handling its parts; a handler is
   offered every question of its effect and no other's; a question nobody answers has no value and, with
@@ -664,15 +668,11 @@ From screens, servers and stores (chapter 9, 2026-11-18):
 
 From chapter 3j, okay-tiny (2026-11-27):
 
-79. Chapter 3j is an implementation chapter at the end of Part III, after 3i, like 3i but with its evidence in
-    another repository: it cites okay-tiny's tests at one commit and runs nothing under `code/`. Keep it so, or
-    bring a rendering of the bank and a law file in okay-tiny's style under `code/java/` (the forty lines' rule
-    that the book's code takes no dependency would mean a copy of `Fx.java`, 290 lines)?
+79. SETTLED 2026-11-27 by the author: the code comes into the book, not whole but as small as it can be and
+    fully typed, optimised for minimalism and not for speed, as the forty lines are: `code/java/rows/`.
 80. SETTLED 2026-11-27 by the author: what a later result shows wrong is rewritten in place, as if it had
     been known from the start; no "as first written", no history of the mistake in the text. Done for Java in
     chapters 3, 3b, 3e, 3g (the section, the pattern paragraph and both tables), 3h (the table and the
     pointer), 5.2a, and 3j itself (its opening and 3j.11 state the results, not the corrections).
-81. Section 3j.6 says okay-tiny keeps every handler's state as part of the rest by construction, so §4.6's law
-    holds for any handler written with `folding`, and that state captured outside, in a mutable object, is
-    still shared. §4.10's table of the laws by rendering has no row for it. Add one (from okay-tiny's tests), or
-    leave the laws to the renderings under `code/`?
+81. SETTLED 2026-11-27 by the author: yes, the laws. `code/java/rows/Laws.java` prints the twelve lines (7 is
+    the compiler's, `refused/NobodyAnswers.java`), and §4.10 has its row; §4.4, §4.6 and §4.9 count it.

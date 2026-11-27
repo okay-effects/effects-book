@@ -64,6 +64,9 @@ check "koka: effect types and handlers"                koka      koka_
 check "scala, the path, stage 3: rows"                 scala-cli scala book.path.stage3.stage3
 check "scala, the path, stage 4: more constructors"    scala-cli scala book.path.stage4.stage4
 
+# Chapter 3j: the tree in Java with the row in the type (code/java/rows), one implementation like the path.
+check "java, rows: the tree with the row in the type"  java      java "$here/java/rows/Bank.java"
+
 # The stages that are not renderings of the scenario assert what they claim; they must run and exit 0.
 holds() { # name, main
   if ! command -v scala-cli >/dev/null 2>&1; then
@@ -146,6 +149,7 @@ law "scala: a tree and closures (kernel.scala)"        scala-cli scala book.laws
 law "scala: capabilities as context parameters"        scala-cli scala book.laws.capabilities
 law "java: a sealed tree and an interpreter"           java      java "$here/java/TreeLaws.java"
 law "java: direct style on virtual threads"            java      java "$here/java/LoomLaws.java"
+law "java, rows: the tree with the row in the type"  java      java "$here/java/rows/Laws.java"
 law "rust: a state machine that is Clone"              rustc     rust_l
 law "typescript: generators"                           node      node "$here/typescript/laws.ts"
 law "python: generators"                               python3   python3 -I "$here/python/laws.py"
@@ -165,6 +169,13 @@ law "scala, the path, stage 4"                         scala-cli scala book.path
 refused "haskell, tagless: the clock left unanswered"  ghc     "No instance for"     ghc_no
 refused "koka: the clock left unanswered"              koka    "unhandled effect"    koka_no
 refused "kotlin: the clock left unanswered"            kotlinc "no context argument" kotlin_no
+
+# The tree with the row in the type (java/rows, chapter 3j): every program under java/rows/refused must not
+# compile, for the reason its first line names ("// javac: ..."). NobodyAnswers.java is law 7.
+rows_no() { (cd "$here/java/rows" && javac -d "$out/rows-no" Fx.java Bank.java Laws.java "$1"); }
+for f in "$here"/java/rows/refused/*.java; do
+  refused "java, rows: $(basename "$f" .java)" javac "$(head -1 "$f" | sed 's#// javac: ##')" rows_no "$f"
+done
 
 # The same laws over generated programs, and a proof beside the tests.
 holds "scala: the laws on 1,000 generated programs, the forty lines" book.laws.generated

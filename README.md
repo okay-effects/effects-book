@@ -10,9 +10,9 @@ built, language by language, with what each gives and costs (Part III, chapters 
 ruler for everything else engineers use for the same problems (chapter 5, the map). Chapter 16 returns to it.
 One implementation, the author's free monad with rows in Scala, is grown from chapter 3's forty lines, its
 stage 0, in four more stages that run (chapter 3i, `code/scala/path/`): the reference demonstration, with the
-other renderings as its comparisons. Chapter 3j takes the same tree into Java 21 with
-the author's okay-tiny: the answer types and the set of effects in the type, checked by javac, no cast in any
-handler. What must hold of any of them is chapter 4, the laws: stated in the
+other renderings as its comparisons. Chapter 3j takes the same tree into Java, in
+79 lines that run (`code/java/rows/`): the answer types and the set of effects in the type, checked by javac,
+no cast in any handler. What must hold of any of them is chapter 4, the laws: stated in the
 notation, printed as twelve lines by every rendering, asked of generated programs, and proved in Lean for
 the tree. Chapter 8 is the catalogue of standard effects: ten of them, each with what its handlers do with
 the rest of the program, what they owe and what goes wrong, every listing an assertion on the forty lines.

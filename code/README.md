@@ -69,6 +69,7 @@ else.
 | `scala/laws/capabilities.scala`, main `book.laws.capabilities` | 7 does not compile; 10, 11 cannot |
 | `java/TreeLaws.java` | |
 | `java/LoomLaws.java` | 10, 11 cannot |
+| `java/rows/Laws.java` | 7 does not compile |
 | `haskell/Laws.hs` | |
 | `haskell/TaglessLaws.hs` | 7 does not compile |
 | `lean/Laws.lean` | |
@@ -90,7 +91,11 @@ compiler while they are compiled (`scala.compiletime.testing.typeCheckErrors`) a
 with its clock missing is refused and the same program with a clock is not. For the other three there is a
 file that must fail to compile, and `run-all.sh` requires the failure and the compiler's words:
 `haskell/TaglessUnanswered.hs` ("No instance for"), `kotlin/unanswered.kt` ("no context argument"),
-`koka/unanswered.kk` ("unhandled effect").
+`koka/unanswered.kk` ("unhandled effect"); and for the Java tree with the row in the type, every file under
+`java/rows/refused/`, its expected words on its first line: `NobodyAnswers.java` is law 7, and seven more are
+the other things its types refuse (an effect left unhandled, a program run with effects pending, an operation
+outside its row, a missing case, an answer of another type, an interceptor outside the handler it asks, a
+clause that runs a rest that still asks the handlers around it).
 
 The laws on generated programs, in Scala:
 
@@ -115,6 +120,24 @@ state a law (chapter 4, §4.10): `rust/laws.rs` and `zig/laws.zig` make a handle
 parameter, where `bank.kt` has one receiver; `haskell/TaglessLaws.hs` adds a continuation monad for a choice
 outside a state; and the law files of the Scala and Java trees pass a handler's state along where the bank
 files keep it in a field.
+
+## The tree in Java, with the row in the type (chapter 3j)
+
+`java/rows/` is chapter 3j: the tree of chapter 3 for a language without GADTs or higher kinds, with the
+answer of every operation typed, the effects a program may ask a set in its type, and the handlers put
+outermost first so that each may ask only what is around it. Like the path of chapter 3i it is not counted
+among the sixteen renderings: it is one implementation, made as small as it can be while every rule is
+javac's, and distilled from the author's okay-tiny.
+
+| file | what it is | run |
+| --- | --- | --- |
+| `rows/Fx.java` | the kernel: 79 lines of code, one cast (the answer's type, chapter 3b), no other warning | |
+| `rows/Bank.java` | the scenario | `java code/java/rows/Bank.java`, prints `expected.txt` |
+| `rows/Laws.java` | the twelve laws; line 7 is the compiler's | `java code/java/rows/Laws.java` |
+| `rows/refused/*.java` | eight programs javac must refuse, each for the words on its first line | `run-all.sh` |
+
+The three files are one package, `rows`; `java` compiles the other two from the same directory (Java 22 and
+later).
 
 ## The path: one implementation, grown in four stages
 

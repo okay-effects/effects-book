@@ -202,30 +202,32 @@ timed  =  t <- Now ; Put(t) ; x <- Get ; done x + t
 ```
 
 Twelve renderings print that line: the run stops and names the question. Four print another one, beginning
-`7 nobody answers: does not compile:`, and so does stage 4 of the path, because in them `timed under Cell(0)`
+`7 nobody answers: does not compile:`, and so do stage 4 of the path and the Java tree with the row of chapter
+3j, because in them `timed under Cell(0)`
 with no clock is not a program that can be built and run:
 
 | rendering | what refuses it | how that is checked |
 | --- | --- | --- |
 | `scala/laws/capabilities.scala` | no given `Clock` in scope | `typeCheckErrors`, inside the main |
 | `scala/path/laws4.scala` | `run` takes the empty row | `typeCheckErrors`, inside the main |
+| `java/rows/Laws.java` | `run` takes the empty row | `refused/NobodyAnswers.java` must fail |
 | `haskell/TaglessLaws.hs` | no instance of `Clock` for the monad | `TaglessUnanswered.hs` must fail |
 | `kotlin/laws.kt` | no context argument for `Clock` | `unanswered.kt` must fail |
 | `koka/laws.kk` | `main` is left with the effect `clock` | `unanswered.kk` must fail |
 
 A printed line that says "does not compile" is a constant, so it is evidence of nothing by itself. The two
 Scala files ask their own compiler, while they are being compiled, whether the line type-checks, and assert
-that it does not and that the same line with its clock does. The other three have beside them the smallest
+that it does not and that the same line with its clock does. The other four have beside them the smallest
 file that is the program with its handler missing; `run-all.sh` compiles each, requires that it fail, and
 requires the compiler's message to be the one about the missing handler.
 
-The five refusals are of two kinds, and the difference is worth a sentence. Where the row is a real type
-that a program carries — stage 4 and Koka — `timed` under the cell alone is a well-typed program with the
-clock in its row, and what is refused is *running* it: `run` takes the empty row, and Koka refuses a `main`
-that is left with an effect. Where the row is the set of things in scope — context parameters in Scala and
-Kotlin, constraints in Haskell — the program cannot be mentioned where no clock is given. The first kind
-lets a half-handled program be passed around as a value with its debts in its type, which is section 2.6's
-"each handler removes its effect from the row".
+The six refusals are of two kinds, and the difference is worth a sentence. Where the row is a real type
+that a program carries — stage 4, the Java tree of chapter 3j and Koka — `timed` under the cell alone is a
+well-typed program with the clock in its row, and what is refused is *running* it: `run` takes the empty
+row, and Koka refuses a `main` that is left with an effect. Where the row is the set of things in scope —
+context parameters in Scala and Kotlin, constraints in Haskell — the program cannot be mentioned where no
+clock is given. The first kind lets a half-handled program be passed around as a value with its debts in its
+type, which is section 2.6's "each handler removes its effect from the row".
 
 **What breaks without it.** The claim in this book's title for Part VI: what is not answered does not happen.
 The usual way to break it is kindness: a default handler, an ambient instance, a global fallback that answers
@@ -361,7 +363,10 @@ files use one. Of those that can: the Haskell and Lean trees have no variables; 
 handler's state as a field of the handled machine, so that copying the machine copies it; the tagless
 rendering's state is its monad's, passed along by the bind; and the Scala and Java trees are safe only
 because their law files were written with the state passed along, which the mutable `Accounts` of their
-bank files is not. (The scenario's line 6 avoids the question by resuming under a bank that moves nothing.)
+bank files is not. (The scenario's line 6 avoids the question by resuming under a bank that moves
+nothing.) The Java tree of chapter 3j cannot break it at all: a handler there is a fold whose state is passed
+to the rest as a value, and there is no other place to keep one; only state captured from outside, like its
+bank's map, is shared.
 
 Koka is the instructive exception. Its `cell` in `code/koka/laws.kk` is written with a local `var`, and line
 10 comes out right: each path has its own cell. I observed that; I did not know it beforehand, and the
@@ -496,7 +501,7 @@ twelve lines are shallow and reach every rendering. The chapter needed both.
 
 What is proved and what is only tested, then: sections 4.1, 4.2, 4.3 as equations and 4.4 at run time are
 proved for the tree; 4.5 and 4.7 are proved for these four handlers; 4.6 is tested and not proved, in the
-renderings that can state it; "does not compile" is checked by running five compilers and is not a theorem
+renderings that can state it; "does not compile" is checked by running six compilers and is not a theorem
 anywhere.
 
 My own Lean port proves more of the same kind about a larger kernel, with rows, an interceptor and an audit
@@ -518,6 +523,7 @@ theorem. No cell is empty: every rendering prints something for every line.
 | Scala, stage 4 | run, gen | run, gen | run, gen | compiler | run, gen | run | run |
 | Lean, a tree | run, proved | run, proved | run, proved | run, proved | run, proved | run | run, proved |
 | Java, a tree | run | run | run | run | run | run | run |
+| Java, the row in the type (3j) | run | run | run | compiler | run | run | run |
 | Haskell, a tree | run | run | run | run | run | run | run |
 | Haskell, tagless | run | run | run | compiler | run | run | run |
 | Scala, capabilities | host | run | run | compiler | run | cannot | run |
@@ -586,18 +592,19 @@ with every toolchain of `code/README.md` installed.
 
 | claim | what runs it | `run-all.sh` says |
 | --- | --- | --- |
-| the twelve lines, §4.1 to §4.7 | a law file beside each rendering; `scala/path/laws4.scala` | `laws`, 17 times |
+| the twelve lines, §4.1 to §4.7 | a law file by each rendering; `laws4.scala`; `rows/Laws.java` | `laws`, 18 times |
 | §4.4, "does not compile", in Scala | `typeCheckErrors` inside the two mains | part of their `laws` line |
-| §4.4, the same elsewhere | `TaglessUnanswered.hs`, `unanswered.kt`, `unanswered.kk` | `refused`, 3 times |
+| §4.4, elsewhere | `TaglessUnanswered.hs`, `unanswered.kt`, `.kk`, `NobodyAnswers.java` | `refused`, 4 times |
 | §4.1 to §4.7, generated | `scala/laws/generated.scala`, main `book.laws.generated` | `holds` |
 | the same on stage 4 | `scala/path/laws4.scala`, main `book.path.stage4.generated` | `holds` |
 | §4.9 | `lean code/lean/Laws.lean`: no message means every proof checked | `proved`, with the count |
 
 The law files are `laws.*` beside each `bank.*` (`TreeLaws.java`, `LoomLaws.java`, `Laws.hs`,
-`TaglessLaws.hs`, `Laws.lean` where the bank file is capitalised; `scala/laws/laws.scala` and
-`capabilities.scala` for the two Scala renderings); `code/README.md` has the command for each. A law file
-prints the twelve lines of `code/laws-expected.txt`, or in place of a line one that begins with the line's
-name and `cannot:`, or `7 nobody answers: does not compile:`; anything else fails the script. The two
+`TaglessLaws.hs`, `Laws.lean` where the bank file is capitalised; `rows/Laws.java` beside `rows/Bank.java`;
+`scala/laws/laws.scala` and `capabilities.scala` for the two Scala renderings); `code/README.md` has the
+command for each. A law file prints the twelve lines of `code/laws-expected.txt`, or in place of a line one
+that begins with the line's name and `cannot:`, or `7 nobody answers: does not compile:`; anything else fails
+the script. The two
 generated mains end `12 laws hold on 1000 generated programs each` and `10 laws hold …`, and print the
 finding of section 4.6 on the way: `FAILS for 12 of 1000`, `FAILS for 18 of 1000`, and line 10 with a
 variable.

@@ -2,23 +2,25 @@
 
 Java has no higher-kinded types, does not refine a type parameter in a `case`, and has no notation for
 sequencing: of the languages in chapter 3g it is the one whose types seem to give this family least. This
-chapter shows how much they give all the same. In Java 21, with no compiler plugin and no bytecode rewriting,
+chapter shows how much they give all the same. In Java, with no compiler plugin and no bytecode rewriting,
 the tree can say the type of every answer and the set of effects a program may ask; the compiler refuses a
-program whose effects are not all handled and a handler that leaves an operation out; and no handler has a
-cast. What Java costs is real, and is mostly in the writing, not in what can be checked (section 3j.11).
+program whose effects are not all handled, a handler that leaves an operation out, and a handler that asks
+what is not around it; and no handler has a cast. What Java costs is real, and is mostly in the writing, not
+in what can be checked (section 3j.11).
 
-**Whose implementation this is.** okay-tiny (github.com/okay-effects/okay-tiny, Apache 2.0): one file,
-`okay.tiny.Fx`, 290 lines of code, no dependency, no threads, no reflection; a second file, `Std`, 212 lines,
-with the usual effects. It is mine, it is the smallest of my JVM kernels, and it is here because the question
-it answers is about Java, not because it is better than the others. Chapter 3i grew one implementation in
-Scala, where the type system does the work; this chapter shows the same tree where the type system does much
-less, and what each missing feature costs in the shape of the code.
+**What runs.** `code/java/rows/`: a kernel, `Fx.java`, of 79 lines of code; the bank of chapter 2 on it,
+`Bank.java`, which prints the ten lines of `code/expected.txt`; the twelve laws of chapter 4, `Laws.java`; and
+eight programs under `refused/` that javac must refuse, each for the words on its first line. `run-all.sh`
+runs all of it. Like the path of chapter 3i it is one implementation, not one of the sixteen renderings. It is
+made as chapter 3's forty lines are made, for reading and not for speed: it is recursive, and a node is made
+anew for every handler it passes. Every listing in sections 3j.2 to 3j.6 is from these files.
 
-**What runs.** Nothing of this chapter is under `code/` or `run-all.sh`. Every listing is from okay-tiny at
-commit `ece0f7e` (2026-11-27) and every claim names the test that asserts it. `./gradlew test` there runs 88
-tests of the kernel (among them 24 programs that javac must refuse, each for the reason its first line
-names), 19 of the direct-style plugin and 6 of a Spring Boot sample; all passed on 2026-11-27, on Java 21.
-Figures in nanoseconds are from the library's `DESIGN.md` and were not re-run for this chapter (section 3j.9).
+**Where it comes from.** It is distilled from okay-tiny (github.com/okay-effects/okay-tiny, Apache 2.0), my
+smallest JVM library: one file of 290 lines of code for Java 21, a loop in place of the recursion, and what a
+library needs beside the kernel — leaving, closing, asynchrony, an observer, the usual effects, direct style as
+a plugin of javac. Sections 3j.7 to 3j.10 are about the library and cite its tests by name at commit
+`ece0f7e` (2026-11-27): 88 tests of the kernel, 19 of the plugin and 6 of a Spring Boot sample, all passing
+that day. One thing differs on purpose between the two, and section 3j.3 says which and why.
 
 ## 3j.1 What Java gives, and what it does not
 
@@ -27,7 +29,7 @@ For this family Java offers:
 - **sealed interfaces and records**: an effect is a sealed interface, an operation a record of it, so the set
   of an effect's operations is closed and known to the compiler;
 - **pattern `switch`** that must cover every case of a sealed type when it is an expression;
-- **intersection bounds on a type variable**: `<R extends Stock & Refusal>` is a type variable that stands for
+- **intersection bounds on a type variable**: `<R extends Accounts & Clock>` is a type variable that stands for
   any type having both;
 - **generic methods with inference**, and lambdas.
 
@@ -37,198 +39,254 @@ first list and goes around the second.
 
 ## 3j.2 The answer's type is on the operation
 
-An effect and its operations:
+The bank's effects, from `Bank.java` (its `toString` methods left out):
 
 ```java
-sealed interface Stock {
-  record Reserve(String sku, int qty) implements Stock, Op<Boolean, Stock> {}
+sealed interface Accounts {
+  record Balance(String account) implements Accounts, Op<Long, Accounts> {}
+  record Move(String from, String to, long amount) implements Accounts, Op<Void, Accounts> {}
+}
+sealed interface Clock {
+  record Now() implements Clock, Op<Long, Clock> {}
 }
 sealed interface Refusal {
-  record Invalid(String field, String why) implements Refusal, Op<Void, Refusal> {}
+  record Refuse(String why) implements Refusal, Op<Void, Refusal> {}
 }
 ```
 
-`Op<A, F>` says two things of a record: the type of its answer, `A`, and the effect it belongs to, `F`. The
-natural place to say the effect once is on the interface, `sealed interface Stock extends Op<Boolean, Stock>`.
-That was tried and is refused as soon as two effects meet in one row: `<R extends Stock & Refusal>` would make
-`R` a subtype of `Op<Boolean, Stock>` and of `Op<Void, Refusal>`, and javac says *Op cannot be inherited with
-different arguments*. The other ways to name the effect once were tried (`DESIGN.md` §2): three fail for the
-same reason, a generic supertype that two effects of one row give different arguments, and the fourth, a family
-indexed by the answer alone, compiles but needs the family's class at every `perform` and still does not refine
-the answer in a `case`. So the effect is named twice on each record, and that repetition is the first cost of
-Java in this design.
+`Op<X, F>` says two things of a record: the type of its answer, `X`, and the effect it belongs to, `F`. The
+natural place to say the effect once is on the interface, `sealed interface Clock extends Op<Long, Clock>`.
+That is refused as soon as two effects meet in one row: `<R extends Accounts & Clock>` would make `R` a
+subtype of two parameterizations of `Op`, and javac says *Op cannot be inherited with different arguments*.
+okay-tiny's `DESIGN.md` (§2) records the other ways to name the effect once that were tried: three fail for
+the same reason, and the fourth, a family indexed by the answer alone, compiles but needs the family's class at
+every `ask` and still does not refine the answer in a `case`. So the effect is named twice on each record, and
+that repetition is the first cost of Java in this design.
 
-Then the answer. Section 3b's problem is that inside `case Stock.Reserve r ->` the compiler knows `r` is a
-`Reserve` and does not know that the answer the rest expects is `Boolean`. okay-tiny never asks it to learn
-that inside the `case`. The clause is made by a function that reads the answer's type off the operation:
+Then the answer. Section 3b's problem is that inside `case Accounts.Balance b ->` the compiler knows `b` is a
+`Balance` and does not know that the answer the rest expects is a `Long`. Here it never has to learn it there.
+The clause is made by a function that reads the answer's type off the operation:
 
 ```java
-static <B, R> Handler<Stock, B, B, R> stock(Map<String, Integer> left) {
-  return handling(Stock.class, op -> switch (op) {
-    case Stock.Reserve r -> answer(r, left.getOrDefault(r.sku(), 0) >= r.qty());
+static <A, R> Handler<Accounts, Void, A, A, R> inMemory(Map<String, Long> balances) {
+  return handling(Accounts.class, op -> switch (op) {
+    case Accounts.Balance b -> answer(b, balances.getOrDefault(b.account(), 0L));
+    case Accounts.Move m -> {
+      balances.merge(m.from(), -m.amount(), Long::sum);
+      balances.merge(m.to(), m.amount(), Long::sum);
+      yield answer(m, null);
+    }
   });
 }
 ```
 
-`answer(Op<X, F> op, X value)` and its general form `on(Op<X, F> op, Clause<X, S, B, R> clause)` take the
-operation as a witness of its own answer type: `X` is inferred from `r`, and the value, or the `k` the clause
-is given, is checked against it: a `String` given as the answer of an operation whose answer is a `Long`
-does not compile (`WrongAnswer`: *String cannot be converted to Long*). This is the road without a cast that
-section 3b names, built: the refinement Java lacks is never needed, because no handler has to learn the answer's
-type in a `case`.
+`answer(Op<X, F> op, X x)` and its general form `on(op, (state, k) -> …)` take the operation as a witness of
+its own answer type: `X` is inferred from `b`, and the value, or what is given to `k`, is checked against it.
+`answer(b, "a hundred")` does not compile (`refused/WrongAnswer.java`). This is the road without a cast that
+section 3b names: no handler has to learn the answer's type in a `case`, so the refinement Java lacks is
+never needed by a handler.
 
-What the arms of the `switch` give is a `Case<F, S, B, R>`, a type in which `X` does not appear, so that arms of
-different answer types are of one type. `Case` is sealed, over four private records that do have `X` (an
-answer in place, a clause given the rest, a clause that keeps the rest, a clause that leaves): an existential
-type made of a sealed interface. A clause of another answer type cannot be put there by a cast, because no
-code outside the file can make a `Case` but through those four functions.
-
-## 3j.3 The row is a set, and it is in the type
-
-A program is `Comp<A, R>`: it gives `A` and may ask `R`. The row is a type variable of the method that makes
-the program, bounded by every effect the program asks:
+It is still needed once, inside the kernel, and the kernel says so. A clause is a record that keeps the
+operation it was made for, `Clause<X, F, S, B, R>`; the arms of a `switch` give clauses of different `X`, so a
+handler's clauses are `Clause<?, F, S, B, R>`, and when the machine gives a clause the rest of the part it has
+to say that the clause's `X` is the rest's. It tests that the clause was made for the very operation asked,
+and casts:
 
 ```java
-static <R extends Stock & Refusal> Comp<Order, R> place(Cart cart) {
-  return perform(new Stock.Reserve(cart.sku(), cart.qty())).flatMap(ok ->
-      ok ? pure(new Order(cart))
-          : perform(new Refusal.Invalid(cart.sku(), "out of stock")).map(x -> new Order(cart)));
+@SuppressWarnings("unchecked")
+private static <Y, X, F, S, B, R> Prog<B, R> given(Clause<Y, F, S, B, R> c, S s, Op<X, ?> asked,
+                                                   BiFunction<X, S, Prog<B, R>> k) {
+  if (c.op() != asked) throw new IllegalStateException("a clause for " + c.op() + " was given " + asked);
+  return c.body().apply(s, (BiFunction<Y, S, Prog<B, R>>) (BiFunction<?, S, Prog<B, R>>) k);
 }
 ```
 
-Three signatures make this work.
+That is the one cast of `Fx.java`, and with `-Xlint:all` the file has no other warning. It is the price of the
+missing refinement, paid in one place instead of in every handler.
 
-- `perform` is `<A, F, R extends F> Comp<A, R> perform(Op<A, F> op)`: an operation of `F` can be asked in a row
-  `R` only if `R` has `F`. Asking `Clock.Now` inside `place` is refused (`OpOutsideRow`, `OpOutsideRowInChain`).
-- `flatMap` is `<B, Q extends R> Comp<B, Q> flatMap(Function<A, Comp<B, Q>> next)`: the row of the whole is a
-  subtype of the rows of both parts, so a program of fewer effects is a program of more as it is. The union of
-  rows is subtyping, and javac computes it.
-- `run` takes `Comp<A, Object>`: only a program with nothing left to ask. A program that still asks an effect
-  is refused there (`RunWithEffectsKept`: *no suitable method found for run*).
+## 3j.3 The row is a set, and it is in the type
 
-The order in which the row is an intersection does not matter: `Stock & Refusal` and `Refusal & Stock` are the
-same bound. My other Java libraries encoded the row as a list of places, and there "rows are positional and
-moved by hand" (`okay-java/README.md`); a set needs no moving.
-
-Handlers are put on a part by a builder whose order is forced by inference:
+A program is `Prog<A, R>`: it gives `A` and may ask `R`. The row is a type variable of the method that makes
+the program, bounded by every effect the program asks:
 
 ```java
-Optional<Order> o = run(Fx.<Order>top().handler(trying()).handler(stock(left)).handle(place(cart)));
+static <R extends Accounts & Clock & Refusal> Prog<String, R> pay(String from, String to, long amount) {
+  return ask(new Accounts.Balance(from)).then(have ->
+      (have < amount ? Fx.<Void, Refusal, R>ask(new Refusal.Refuse(from + " has " + have + ", needs " + amount))
+          : Fx.<Void, R>done(null))
+          .then(ok -> ask(new Accounts.Move(from, to, amount)))
+          .then(moved -> ask(new Clock.Now()))
+          .then(at -> done("moved " + amount + " from " + from + " to " + to + " at " + at)));
+}
 ```
 
-`row()` (or `top()`, the empty row) fixes the row that stays outside; each `.handler(h)` adds the effect of
-`h` to the set the part may ask; `.handle(part)` checks the part against that set. The order matters: with the
-handlers and the part in one call, javac infers the set from what the part asks and accepts a part that asks
-more than is handled. Written this way, a part that asks an effect with no handler is refused
-(`MissingHandler`: *incompatible types*), and so is a handler whose own clauses ask what does not stay outside
-it (`HandlerAsksWhatDoesNotStay`, `HandlerAsksOutsideKeptRow`).
+Three signatures of `Fx.java` make this work.
 
-The twenty-four refusals, by kind (`src/test/negative`, checked by `NegativeTest`, each for its own message):
+- `ask` is `<X, F, R extends F> Prog<X, R> ask(Op<X, F> op)`: an operation of `F` can be asked in a row `R`
+  only if `R` has `F`. A program of row `Accounts` that asks the clock is refused (`refused/OutsideTheRow.java`).
+- `then` is `<B, Q extends R> Prog<B, Q> then(Function<A, Prog<B, Q>> next)`: the row of what follows may have
+  more effects than the row of what went before, so a program of fewer effects is one of more as it is. The
+  union of rows is subtyping, and javac computes it. (The one explicit row in `pay` is in the branches of `?:`,
+  where javac has no target to infer it from.)
+- `run` takes `Prog<A, Object>`: only a program with nothing left to ask (`refused/RunWithEffects.java`).
 
-- **an operation the row does not have**: `OpOutsideRow`, `OpOutsideRowInChain`, `EffectTakenOutIsStillAsked`,
-  `PartAsksMoreThanKept`, `SmallerOnPurpose`;
-- **an effect left with no handler**: `MissingHandler`, `PartWithoutItsHandler`, `RunWithEffectsKept`,
-  `StartWithEffectsKept`;
-- **a handler that leaves an operation out**: `MissingCase`;
-- **an answer or a state of another type**: `WrongAnswer`, `WrongAnswerOfOneKind`, `WrongNextState`,
-  `ReturnOfAnotherState`, `ReturnOfAnotherType`;
-- **a handler of another part or effect**: `HandlerOfAnotherPartValue`, `PartValueOfAnotherType`,
-  `ClauseValueNotTheHandlers`, `ClauseOfAnotherEffect`, `OperationOfAnotherFamily`;
-- **a handler that asks what does not stay**: `HandlerAsksWhatDoesNotStay`, `HandlerAsksOutsideKeptRow`,
-  `ClauseAsksOutsideItsRow`, `PassWhereTheEffectDoesNotStay`.
+The order of an intersection does not matter: `Accounts & Clock` and `Clock & Accounts` are the same bound.
+A row of places — a list of effects in order — has to be moved by hand when a handler is put in the middle of
+it, and my earlier Java libraries paid that (`okay-java/README.md`); a set needs no moving. And the row is in
+the types only: `Prog`'s two records hold an operation and a function, and no value holds a row. Where the
+kernel has to change a program's row it makes the program anew (`rowed`), rather than cast it.
 
-What it costs. `R` and the part's value type `A` are written at `row()` (`Fx.<R, A>row()`), because handlers
-that only answer are generic in the part's type and javac has nothing to infer it from. A row of several
-effects cannot be written as a type argument — `Fx.<Stock & Clock, A>row()` is not Java — so it is always a
-type variable of the enclosing method. Two effects of one class with different arguments (`State<Integer>` and
-`State<String>`) cannot be in one row: javac refuses the bound, which matches the machine, which finds a
-handler by the effect's class. And javac's messages name inference variables, not effects: *inference
-variable R has incompatible bounds* is how "you asked an effect this program does not declare" is said. The
-library's guide translates the three messages a user meets; nothing makes them shorter.
+**Handlers are put outermost first, in two steps.**
 
-On the axes of chapter 3a: (c) a handler is found at run time by the effect's class, the nearest part first;
-(d) the types say the answer of each operation, the set of effects pending, the completeness of a handler, and
-what a handler's own clauses may ask. They do not say the laws (section 3j.11).
+```java
+var paid = run(Fx.<Result>top().handler(inMemory(rich)).handler(fixedClock(42)).handler(refusals())
+    .handle(pay("ann", "bob", 30)));
+```
+
+`top()` (or `row()`, for a part with effects left outside it) fixes the row that stays outside and the type
+of the result. Each `.handler(h)` adds the effect of `h` to the set inside it; `.handle(part)` checks the part
+against the last set. The signature is the whole of it:
+
+```java
+public <V extends W, P> Handlers<R, V, P, B> handler(Handler<? super V, ?, P, A, W> h)
+public Prog<B, R> handle(Prog<A, ? super W> part)
+```
+
+`W` is what is inside the handlers put so far; `V`, inferred as `W` and the new handler's effect, is what is
+inside this one; the handler's own row is exactly `W`, what is around it. Two things in this follow from
+Java's inference. The steps are separate calls because javac must fix the set before it sees the part: with
+the handlers and the part in one call it would infer the set from what the part asks, and accept a part that
+asks more than is handled. And the result type is written at `top()`, because a handler that only answers is
+generic in what the part gives and javac has nothing to infer it from. A part that asks an effect nobody
+handles is refused (`refused/Unhandled.java`: *inference variable R has incompatible bounds*), and so is
+line 7 of the laws (`refused/NobodyAnswers.java`).
+
+**Why outermost first, and why exactly `W`.** A handler's clauses are programs of what is around it, and so is
+the rest `k` they are given: once its own operations are answered, the rest of the part still asks whatever
+the handlers *around* this one answer. The handler's row must say exactly that. Put outermost first, each
+handler's row is known when it is put, and is `W`. The journal of line 3 asks `Accounts` of the bank around it,
+and can be put only inside a handler of `Accounts` (`refused/JournalOutsideTheBank.java`):
+
+```java
+static <A, R extends Accounts> Handler<Accounts, Void, A, A, R> journal(List<String> lines) {
+  return handling(Accounts.class, op -> switch (op) {
+    case Accounts.Balance b -> on(b, (none, k) -> Fx.<Long, Accounts, R>ask(b).then(x -> {
+      lines.add(b + " -> " + x);
+      return k.apply(x, none);
+    }));
+    case Accounts.Move m -> on(m, (none, k) -> Fx.<Void, Accounts, R>ask(m).then(x -> {
+      lines.add(m + " -> ()");
+      return k.apply(x, none);
+    }));
+  });
+}
+```
+
+Both halves of the rule are needed, and a program that compiles and fails shows each. Put innermost first,
+as okay-tiny puts them, every handler's row is typed as the row outside all of them. A clause there that runs
+its rest by itself — `Fx.run(k.apply(x, s))`, in a handler declared with an empty row — compiles, and fails
+when run with *no handler for Now*, because the rest still asks the clock handled around it (a program run
+against okay-tiny at `ece0f7e`; it is not in the library's tests). Put outermost first but typed `? super W`,
+a handler could still say its row was empty inside a handler of the clock, and run its rest the same way.
+With the row exactly `W` that program is refused (`refused/RunsTheRest.java`). okay-tiny's `DESIGN.md` lists
+the hole among what is open.
 
 ## 3j.4 Completeness is the compiler's
 
 A handler's clauses are a `switch` expression over the sealed effect. A `switch` expression that leaves out a
-record of a sealed interface does not compile (`MissingCase`: *the switch expression does not cover all
-possible input values*). So "every operation of the effect has a clause" — the law of section 4.3 that a
-handler is offered every question of its effect — is checked with no code of the library's at all. Adding an
-operation to an effect breaks the build at every handler of it, which is what a team wants.
+record of a sealed interface does not compile (`refused/MissingCase.java`: *the switch expression does not
+cover all possible input values*). So "every operation of the effect has a clause" — the law of section 4.3
+that a handler is offered every question of its effect — is checked with no code of the kernel's at all.
+Adding an operation to an effect breaks the build at every handler of it, which is what a team wants.
+
+It also changes what a handler may be. In `code/java/Tree.java` the dry run of line 6 answers `Move` and lets
+`Balance` pass, and a handler that answers some operations of an effect is ordinary. Here a handler of
+`Accounts` answers both or does not compile: line 6's `whatIf` goes on with the rest once for each supposed
+balance and answers `Move` with nothing moved, in one handler.
 
 ## 3j.5 A handler is a fold, and a monad
 
-The general handler:
+```java
+public record Handler<F, S, A, B, R>(Class<F> effect, S state, BiFunction<S, A, Prog<B, R>> done,
+                                     Function<F, Clause<?, F, S, B, R>> clauses) {}
+```
+
+A handler of `F` has a state of type `S`, what it gives where the part ends with an `A` (of its last state and
+that value), and a clause for each operation, given the state and the rest `k`, a function of the operation's
+answer and the next state. This is chapter 2b's handler as a fold, and it is also a monad: `done` is the unit,
+a clause with its `k` is the bind of that operation, and `S` and `B` are its carrier. The cell of the laws:
 
 ```java
-static <A, R> Handler<Refusal, A, Optional<A>, R> trying() {
-  return folding(Refusal.class, null, (s, a) -> Optional.of(a), op -> switch (op) {
-    case Refusal.Invalid i -> on(i, (s, k) -> pure(Optional.empty()));       // the rest is left
+static <A, R> Handler<State, Long, A, Held<A>, R> cell(long initial) {
+  return new Handler<>(State.class, initial, (s, a) -> done(new Held<>(a, s)), op -> switch (op) {
+    case State.Get g -> on(g, (s, k) -> k.apply(s, s));
+    case State.Put p -> on(p, (s, k) -> k.apply(null, p.n()));
   });
 }
 ```
 
-`Handler<F, A, B, R>`: of a part that gives `A`, a handler of `F` gives `B`, and its clauses may ask `R`. It
-has a state (here none), `ret` — what it gives where the part ends, of its last state and the part's value —
-and a clause for each operation, given the state and the rest `k`, a plain function of the operation's answer
-and the next state. The state's type `S` is hidden the same way the answer's is: `Handler` is a sealed
-interface without `S`, over one private record with it. What is around a handler does not see its state, and
-cannot get it wrong.
+The order of two handlers is the order of two monads. Line 8 of the laws puts the refusals around the cell
+and then the cell around the refusals, and the types of the two results are the meanings:
+`Outcome<Held<Long>>` loses the cell with the part, `Held<Outcome<Long>>` keeps it —
+`8 state then failure: refused(no) | failure then state: refused(no), cell 1`. That is section 4.5's one
+equation that the order of state and failure decides.
 
-This is chapter 2b's handler as a fold, and it is also a monad: `ret` is the unit, a clause with its `k` is the
-bind of that operation, and `S` and `B` are its carrier (`DESIGN.md` §1, decision 3). The usual effects in
-`Std` are each written as the handler that is its monad, using only what the kernel gives: `State<S>` gives
-`Final<S, A>`, `Fail<E>` an `Optional<A>` or a `Result<E, A>`, `Emit<X>` a `Told<X, A>`, `Choice` a `List<A>`
-of every way. And the order of two handlers is the order of two monads (`StdTest`,
-`theOrderOfTwoHandlersIsTheOrderOfTwoMonads`): a failure inside a state keeps the state, `Final<S, Result<E,
-A>>`; a state inside a failure is lost with the part, `Result<E, Final<S, A>>`. That is section 4.5's one
-equation that the order of state and failure decides, shown in the types of the two results.
+One effect, several handlers, the program unchanged: lines 1 to 6 of the scenario run the same `pay` under a
+bank, a journal, a limit and a supposition, and line 2's refusal and line 4's are one effect handled the same
+way, asked by different code. Those are section 5.2a's policies that a port's adapter cannot be.
 
-One effect, several handlers, the program unchanged: `ScenariosTest` runs the same `place` under a handler that
-stops at the first refusal, one that collects all refusals and goes on, and one that gives an `Optional`
-(`theSameProgramTheFirstRefusalStopsIt`, `theSameProgramAllRefusalsAreCollectedAndItGoesOn`,
-`aPartIsLeftWithAValueOfTheHandlers`). Those are section 5.2a's policies that a port's adapter cannot be.
+## 3j.6 The machine, and the rest as a value
 
-## 3j.6 The machine
+`run` of the forty lines, with a row:
 
-`run` is one loop of about ninety lines. The rest of the program is a stack of parts, one for each handler in
-force, and each part a stack of steps (a `flatMap`, a `map`, and two marks for closing). Both stacks are linked
-lists whose steps are never changed after they are made; what is written is the state of the part being run,
-a flag on a rest that it was gone on with, and, for a rest that is kept, which parts it holds.
+```java
+private static <F, S, A, B, R> Prog<B, R> under(Handler<F, S, A, B, R> h, S s, Prog<A, ?> p) {
+  return switch (p) {
+    case Done<A, ?> d -> h.done().apply(s, d.value());
+    case Ask<?, A, ?> a -> step(h, s, a);
+  };
+}
+private static <X, F, S, A, B, R> Prog<B, R> step(Handler<F, S, A, B, R> h, S s, Ask<X, A, ?> a) {
+  if (!h.effect().isInstance(a.op())) return new Ask<>(a.op(), x -> under(h, s, a.rest().apply(x)));
+  BiFunction<X, S, Prog<B, R>> k = (x, next) -> under(h, next, a.rest().apply(x));
+  return given(h.clauses().apply(h.effect().cast(a.op())), s, a.op(), k);
+}
+```
 
-- **An operation** finds the nearest part whose handler's effect it is of. A clause made by `answer` is
-  answered where it is asked: nothing moves.
-- **A clause that needs the rest** takes it off: the steps of the innermost part and the parts up to the
-  handler's own, with their states. That is two pointers. The clause then runs as a program of what is
-  around the handler's part — which is why it may ask the effects that stay outside, and why its own handler
-  is not in force inside it.
-- **`k.apply(answer, next)`** puts the parts back on top of what runs *now*, made anew of those taken off:
-  those inside the handler's own with the states they had when the operation was asked, its own with `next`,
-  those around it as they are now.
+An operation of another effect is asked again further out, with the rest still under this handler; one of its
+own is given to its clause with `k`, the rest of the part under this handler from the next state on. `k` is a
+closure: it may be called once, twice or never, and is never replayed. The state is passed to it as a value,
+so a rest gone on with twice goes on with two states, and every handler's state is part of the rest by
+construction. That is section 4.6's law, and lines 10 and 11 show both sides of it:
 
-Because the parts put back are new and the parts a rest holds are never run, a rest gone on with twice is two
-independent runs, each with its own states (`theRestIsGoneOnWithTwice`, `aStateIsAValueOfEachWay`,
-`partsDeepOneInAnotherKeepTheirStatesOnEveryWay`). Nothing is replayed. This bears on section 4.6. There, a
-handler that keeps its state in a variable is not a fold over the rest, and the Scala and Java trees of
-`code/` are safe only because their law files pass the state along by hand. In okay-tiny the state is in the
-part's record, not in a variable the author of the handler chooses: every handler's state is part of the rest,
-by construction, and the author cannot make the other choice by accident. The guide still warns that mutable
-state *captured* by a handler, outside its state, is shared by every way — the language cannot stop that.
+```
+10 twice, state inside: 11, cell 11 | 21, cell 21
+11 twice, state outside: 11 | 31, cell 31
+```
 
-**No stack.** No call of the loop is nested in another; the depth of a program is in the two lists. The tests
-run with `-Xss256k -Xmx64m`: a million operations in a loop, a million `flatMap` nested to the left, a
-million `map` (`aLongProgramTakesNoStack`). A call that is the last thing a `flatMap`'s function does is a tail
-call and leaves nothing behind: two functions that call each other 10^8 times run in that stack and heap
-(`DESIGN.md` §5; the test, `aTailCallBetweenTwoFunctionsTakesNeitherStackNorHeap`, runs 5·10^6). For a call with
-nothing asked before it there is `defer(() -> other(n - 1))`, a node of its own. What is not a tail call is
-said too: a call with a `map` after it grows the heap by a step a level, and a handler put anew inside a loop is
-a part a level — the guide's rule is that a handler goes around a loop, not inside it.
+The Scala and Java trees of the sixteen renderings are safe there only because their law files pass the
+state along by hand, which their bank files do not; here there is no other way to write a handler's state.
+What the language cannot stop is state *captured* from outside, like the bank's map: it is shared by every way.
+`whatIf` of line 6 is safe with the bank's map only because it moves nothing.
 
-## 3j.7 Each node forced, and what it saved
+The kernel is recursive, as the forty lines are: a long program overflows the stack, and every handler a node
+passes makes the node anew. okay-tiny is the same model as a loop, and the next four sections are about it.
 
-Like stage 4 of chapter 3i, the kernel began smaller and each addition was made after a measurement or a
+**The library's machine.** In okay-tiny `run` is one loop of about ninety lines. The rest of the program is a
+stack of parts, one for each handler in force, each a stack of steps; taking the rest is two pointers, and
+putting it back makes the parts anew, so a rest gone on with twice is two independent runs
+(`theRestIsGoneOnWithTwice`, `aStateIsAValueOfEachWay`, `partsDeepOneInAnotherKeepTheirStatesOnEveryWay`). No
+call of the loop is nested in another. Its tests run with `-Xss256k -Xmx64m`: a million operations in a loop,
+a million `flatMap` nested to the left, a million `map` (`aLongProgramTakesNoStack`). A call that is the last
+thing a `flatMap`'s function does is a tail call and leaves nothing behind: two functions that call each other
+10^8 times run in that stack and heap (`DESIGN.md` §5; the test,
+`aTailCallBetweenTwoFunctionsTakesNeitherStackNorHeap`, runs 5·10^6). What is not a tail call is said too: a
+call with a `map` after it grows the heap by a step a level, and a handler put anew inside a loop is a part a
+level.
+
+## 3j.7 In the library: each node forced, and what it saved
+
+Like stage 4 of chapter 3i, okay-tiny's kernel began smaller and each addition was made after a measurement or a
 program that could not be written. The figures are `DESIGN.md`'s, JMH, ns per operation (section 3j.9 for the
 protocol).
 
@@ -262,7 +320,7 @@ pitfall for a handler generic in its effect). Of the alternatives the most instr
 `leave(value)`, a clause for any operation of an effect, is what was kept of it. It has no operation to read
 an answer's type from, so it cannot go on with the rest; the types say so.
 
-## 3j.8 Leaving, closing, waiting, watching
+## 3j.8 In the library: leaving, closing, waiting, watching
 
 Four words beside the tree, each small.
 
@@ -288,7 +346,7 @@ Four words beside the tree, each small.
   operation asked last and the handlers in force added to it as a suppressed exception; there is no stack
   trace of the program, and the library says so.
 
-## 3j.9 What it costs
+## 3j.9 In the library: what it costs
 
 `DESIGN.md` §5: JMH 1.37, Temurin 21, Apple silicon, ns per operation, each ± under 0.5, a machine with nothing
 else running.
@@ -309,7 +367,7 @@ runs taken in turn and by their least. A free monad makes five or six small obje
 floor of this family on the JVM, and it is the order of chapter 13's reference kernels (section 13.6), not a
 competitor to them: different lanes, different days, and the figures were not taken together.
 
-## 3j.10 Where it has been, and against the family's tests
+## 3j.10 In the library: where it has been, and the family's tests
 
 **The TCK.** `TckTest` runs the family's conformance test: a thousand random programs of logs, states,
 failures and choices one in another, the digest of their outcomes compared with the reference's. It gives
@@ -339,47 +397,54 @@ a `while`, a branch of `?:`, a `try` with a `catch` — it is an error at that l
 Java, then, a transformation need not rewrite bytecode: it can rewrite the source tree, and the types are
 checked after it (chapters 3e and 3g).
 
+
 ## 3j.11 What Java gives this family, and what it costs
 
-What the types check, with no plugin and no cast in any handler:
+What the types check, in `code/java/rows/` and in okay-tiny alike, with no plugin and no cast in any handler:
 
-- **the answer of every operation**: the operation is the witness of its own answer type (`on`, `answer`); the
-  refinement Java lacks is never needed;
+- **the answer of every operation**: the operation is the witness of its own answer type (`on`, `answer`);
 - **the row**: an intersection bound, a set, never moved by hand; an operation outside it, an effect left with
   no handler, and a program run with effects still pending are refused;
 - **a handler's completeness**, by the exhaustive `switch` over a sealed effect;
-- **what a handler's own clauses may ask**: only the row that stays outside its part;
-- **a handler's state**, hidden as an existential from what is around it, never erased to `Object` in user
-  code.
+- **what a handler's own clauses may ask**: in the book's kernel, exactly what is around it; in okay-tiny, only
+  the row outside all the handlers put together, which is less than the truth (section 3j.3).
 
-Twenty-four programs that javac must refuse are the evidence, each for its own reason.
+The evidence is programs javac must refuse: eight under `code/java/rows/refused/`, run by `run-all.sh`, and
+twenty-four in okay-tiny's `src/test/negative`, each for its own reason.
 
-What Java costs whatever the design, and the library lists in its own pitfalls:
+What Java costs whatever the design:
 
 - the effect is named twice on each operation's record;
-- the part's value type is written at `row()`, and a generic effect's types are said at the start of a chain
-  (`Std.<Integer, R>update(..)`);
+- the result's type is written where the handlers are put, and a row is said by hand where javac has no target
+  for it (the branches of `?:`, the start of a chain of a generic effect);
 - a row of several effects is never a type argument, only a method's type variable;
-- one effect of a class in a row; two `State`s are told apart by where their handlers are put, not by type;
+- one effect of a class in a row: two states are told apart by where their handlers are put, not by type;
 - javac's messages speak of inference variables, far from the cause;
-- the machine's loop is untyped inside: seven places in `Fx.java` are marked unchecked — the phantom row in
-  `flatMap` and `map`, the builder's two, the loop, and the two that open the hidden state and answer types.
-  What guards them is that `Case` and `Handler` can only be made by the library's functions and that the loop
-  checks a clause was made for the operation asked.
+- the refinement is paid once inside the kernel: one cast in `Fx.java`, guarded by the test that a clause was
+  made for the operation asked. okay-tiny, a loop with registers of one type, has seven places marked
+  unchecked, guarded the same way and by the rule that its clauses and handlers can be made only through its
+  functions.
 
-And what no type here says: that `ret` and the clauses make a lawful monad. A clause that applies `k` twice and
-keeps one result passes the types. Chapter 4's laws are the author's to keep, here as everywhere but Lean.
+And what no type here says: that `done` and the clauses make a lawful monad. A clause that calls `k` twice and
+keeps one result passes the types. Chapter 4's laws are the author's to keep, here as everywhere but Lean; for
+this kernel they are the twelve lines of `Laws.java`.
 
 ## 3j.12 What was not shown
 
-- Nothing of okay-tiny is in this book's `code/`: no rendering of the bank, no law file, nothing under
-  `run-all.sh`. The chapter cites tests by name at one commit.
-- It has not been tried on a large code base, with JPA, or by a team other than me and my agents.
-- The figures are of one machine, from the library's own record, not re-run here.
-- No benchmark compares it with `Tree.java`, with okay-java, or with the reference kernels in one session.
+- The book's kernel is recursive and makes a node anew for every handler it passes; nothing of it was measured.
+  The library's figures (3j.9) are of one machine, from its own record, not re-run here.
+- Neither has been tried on a large code base, with JPA, or by a team other than me and my agents.
+- No benchmark compares okay-tiny with `Tree.java`, with okay-java, or with the reference kernels in one session.
+- The hole of section 3j.3 is closed in the book's kernel and open in okay-tiny.
 
 ## What was run
 
+`sh code/run-all.sh`: `java code/java/rows/Bank.java` prints `code/expected.txt`; `java code/java/rows/Laws.java`
+prints `code/laws-expected.txt` with line 7 as *does not compile*; the eight programs of
+`code/java/rows/refused/` are refused by javac for the words on their first lines. `javac -Xlint:all` on the
+three files gives no warning. Java 26, 2026-11-27.
+
 In okay-tiny at `ece0f7e`, Java 21: `./gradlew test` — 88 tests of the kernel (`ScenariosTest`, `StdTest`,
 `AsyncTest`, `TckTest`, `BookingTest`, `GuideTest`, `PortsTest`, `ReadmeTest`, and `NegativeTest` over the 24
-programs of `src/test/negative`), 19 of `direct/`, 6 of `spring-sample/`; all passed, 2026-11-27.
+programs of `src/test/negative`), 19 of `direct/`, 6 of `spring-sample/`; all passed, 2026-11-27. The program
+of section 3j.3 that compiles there and fails was run against the same commit.

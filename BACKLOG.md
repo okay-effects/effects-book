@@ -364,18 +364,20 @@ To check, from this pass:
 
 ## The tree in Java (chapter 3j): what is left
 
-Done 2026-11-27: chapter 3j on okay-tiny at `ece0f7e`; the Java claims of 3, 3b, 3e, 3g, 3h and 5.2a rewritten in
-place (question 80, settled); 3b, 3g (the Java section and both tables), 3h, 5.2a and
-13.6 point to it; PLAN questions 79 to 81.
+Done 2026-11-27: chapter 3j; the Java claims of 3, 3b, 3e, 3g, 3h and 5.2a rewritten in place (question 80);
+`code/java/rows/` (kernel, scenario, laws, eight refusals) under `run-all.sh` (question 79); its laws in
+chapter 4 (question 81). `run-all.sh` exits 0 with them.
 
-- **Nothing of 3j runs under `run-all.sh`.** Done: a rendering of the bank and a law file in okay-tiny's style
-  under `code/java/`, printing `code/expected.txt` and `code/laws-expected.txt` (question 79), or the chapter
-  keeps citing tests at a commit and says so, as now.
-- **The figures of 3j.7 and 3j.9 are `DESIGN.md`'s**, taken on different days as the kernel changed. Done: one
-  JMH session of the seven lanes at one commit, the command in the text.
-- **No comparison in one session** with `code/java/Tree.java`, okay-java or the reference kernels of 13.6.
-- **The javac messages quoted in 3j** are the first lines `NegativeTest` matches, not whole messages; a newer
-  JDK may word them differently. `NegativeTest` will say so when it does.
+- **The figures of 3j.7 and 3j.9 are okay-tiny's `DESIGN.md`'s**, taken on different days as the kernel
+  changed. Done: one JMH session of the seven lanes at one commit, the command in the text.
+- **No comparison in one session** of okay-tiny with `code/java/Tree.java`, okay-java or the reference kernels
+  of 13.6. The book's `rows` kernel is not measured at all, on purpose: it is made to be read.
+- **The javac messages** that `run-all.sh` requires of `rows/refused/` are a few words each; a newer JDK may
+  word them differently, and the script will say so.
+- **The hole of §3j.3 in okay-tiny** (handlers innermost first; a clause that runs its rest compiles and fails)
+  is recorded in okay-tiny's `DESIGN.md`. Fixing it there changes the order of `handler(..)` calls for every
+  user: a decision for that library, not for the book.
+- **The generated laws** (1,000 programs) exist for the Scala trees only, not for `rows`.
 
 ## Chapters not written
 
