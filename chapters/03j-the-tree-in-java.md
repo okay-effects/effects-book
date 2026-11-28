@@ -449,27 +449,6 @@ And what no type here says: that `done` and the clauses make a lawful monad. A c
 keeps one result passes the types. Chapter 4's laws are the author's to keep, here as everywhere but Lean; for
 this kernel they are the twelve lines of `Laws.java`.
 
-**What its tests missed.** Three faults were found in the library after every test had passed, and each is
-a fault of this kind of kernel, not of Java. A rest was, for a few hours, given its steps after its clause had
-returned — an optimization — and a clause that ran its rest inside itself found it without them: a callback
-given to work already done is called there and then. The same callback, where it did run the rest, ran it as
-a call inside the clause, and with work that ends quickly the Java stack only grew: 27 frames at a wait became
-86 to 888 over twenty thousand waits. And where a part was left, a closing that threw kept the other
-closings of that rest from being run. The first was seen by another program using the library, the second by
-a test of twenty thousand waits written after the first, the third by reading the code. None is in the
-family's TCK, which has no closing, no rest kept and no work that ends on another thread. What was added is
-`WaysTest`: three thousand random programs of states, failures, choices, closings and exceptions, each
-written nine ways that mean the same and take the machine by different roads — answered in place, the rest
-taken off and put back, the rest kept — which must give the same value or exception and the same notes in
-the same order; and whatever was opened closed once, the last opened first. Run against the kernel as it
-was, it finds the third fault within its first six hundred programs. The fast roads of a machine are where
-its faults are, and a law that says two ways of writing are one is a test of them that needs no second
-implementation.
-
-The plugin had its own: a name declared in a block with a `$`, or in a branch that may end the method, was
-in what followed that block's — a field of the same name was read as the local, with no word from javac.
-It is refused now, at the block.
-
 ## 3j.12 What was not shown
 
 - The book's kernel is recursive and makes a node anew for every handler it passes; nothing of it was measured.
