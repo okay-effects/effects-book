@@ -212,17 +212,17 @@ calling. What that buys is exactly the list above — the policies that were sha
 decorators, the batching, the waiting — and nothing else. A team that feels none of those has no reason to
 move, and chapter 14 says so at length.
 
-**In my library.** okay-tiny (github.com/okay-effects/okay-tiny, Java 21, one file of 424 lines of code with
+**In my library.** okay-tiny (github.com/okay-effects/okay-tiny, Java 21, one file of 398 lines of code with
 no dependency; chapter 3j is about it) was written to put this to a code base built on ports. Its tests are
 the claims of this section, run: one program under a handler that stops at the first refusal, one that
 collects them, and one that gives an `Optional` (`ScenariosTest`: `theSameProgramTheFirstRefusalStopsIt`,
 `theSameProgramAllRefusalsAreCollectedAndItGoesOn`, `aPartIsLeftWithAValueOfTheHandlers`); a handler that sees
 every operation of an effect and passes it on, which is the decorator (`everyOperationOfAnEffectIsSeen`); one
 operation that holds many items, answered with one query (`oneOperationThatHoldsManyItems`); a use case of
-seven ports with its seven adapters as one function each and no container (`BookingTest`); and twenty-four
+seven ports with its seven adapters as one function each and no container (`BookingTest`); and twenty-five
 programs the compiler refuses, among them an effect left without a handler (`NegativeTest`). It also runs in
 a small Spring Boot service with beans, a database, Spring's transactions and a controller (`spring-sample`,
-six tests), with no change to the kernel; it has not been tried on a large code base or by a team, and its
+ten tests), with no change to the kernel; it has not been tried on a large code base or by a team, and its
 `DESIGN.md` says so.
 
 **On the two halves.** As section 5.2: a vocabulary, and neither half as a value. Ports and adapters is a rule

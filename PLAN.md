@@ -258,7 +258,7 @@ the renderings under `code/`.
   its rest compiles and fails when its row is less than the truth: shown against okay-tiny, and against
   `? super W`); completeness by a `switch` over a sealed effect; a handler as a fold and a monad, its state a
   value given to the rest, so §4.6's law holds by construction. Then okay-tiny, the library it is distilled
-  from (Java 21, 424 lines), cited by test at `d991227` (92 + 19 + 10 tests): its loop, each node forced by a
+  from (Java 21, 398 lines), cited by test at `8962bdf` (100 + 22 + 10 tests): its loop, each node forced by a
   measurement, `leave`, `ensuring`, `keep`, the observer, costs, the family's TCK digest, Spring, direct style
   as a javac plugin. What Java gives this family and what it costs. Written 2026-11-27; the code the same day,
   on the author's word that the book's version be minimal and fully typed, like the forty lines. 3, 3b, 3e, 3g,

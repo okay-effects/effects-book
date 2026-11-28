@@ -16,11 +16,11 @@ made as chapter 3's forty lines are made, for reading and not for speed: it is r
 anew for every handler it passes. Every listing in sections 3j.2 to 3j.6 is from these files.
 
 **Where it comes from.** It is distilled from okay-tiny (github.com/okay-effects/okay-tiny, Apache 2.0), my
-smallest JVM library: one file of 424 lines of code for Java 21, a loop of typed moves in place of the
+smallest JVM library: one file of 398 lines of code for Java 21, a loop of typed moves in place of the
 recursion, and what a library needs beside the kernel — leaving, closing, asynchrony, an observer, the usual
-effects, direct style as a plugin of javac. Sections 3j.7 to 3j.10 are about the library and cite its tests by name at commit
-`d991227` (2026-11-27): 92 tests of the kernel, 19 of the plugin and 10 of a Spring Boot sample, all passing
-that day. The rule of section 3j.3 is the library's too.
+effects, direct style as a plugin of javac. Sections 3j.7 to 3j.10 are about the library and cite its tests
+by name at commit `8962bdf` (2026-11-28): 100 tests of the kernel, 22 of the plugin and 10 of a Spring Boot
+sample, all passing that day. The rule of section 3j.3 is the library's too.
 
 ## 3j.1 What Java gives, and what it does not
 
@@ -312,8 +312,8 @@ the hidden type an existential, where they had been one record with flags and `O
 and a step 2 to 6 ns faster.
 
 The machine itself went the same way, and that one cost. As one loop over registers of type `Object`, with a
-cast wherever a hidden type was opened, it answered in place in 5.0 ns; as moves typed throughout, in 6.0,
-with the same 64 bytes made an operation, while a state costs the same or less. Of the nanosecond, a third
+cast wherever a hidden type was opened, it answered in place in 5.0 ns; as moves typed throughout, in 5.7,
+with the same 64 bytes made an operation, while a state costs less (9.0 ns then, 7.3 now). Of the nanosecond, a third
 was the way back to the loop after each answer and went when an answer was let go on within its move; 0.3 is
 the operation kept for the failure's note; the rest was not found (`DESIGN.md` §5). What it bought is that
 a move which gives the wrong thing to the wrong step does not compile.
@@ -363,15 +363,18 @@ else running.
 
 | | ns |
 | --- | ---: |
-| `answer`, the handler the innermost of seven | 6.0 |
-| `answer`, the handler the outermost of seven | 13.7 |
+| `answer`, the handler the innermost of seven | 5.7 |
+| `answer`, the handler the outermost of seven | 14.5 |
 | an answer and two `map` | 17 or 22, from one run to the next |
-| a counter (a state that moves on at every operation), alone | 9.4 |
-| the counter the innermost of seven | 9.4 |
-| the counter the outermost of three | 11.7 |
-| the counter the outermost of seven | 17.0 |
+| a counter (a state that moves on at every operation), alone | 7.3 |
+| the counter the innermost of seven | 7.6 |
+| the counter the outermost of three | 10.0 |
+| the counter the outermost of seven | 15.6 |
+| a state said of a template, outside four other effects said of templates | 15.5 |
 
-The same document gives the limit of these figures: with another process busy, the outermost counter gave 33
+At a depth of seven the same code gives one figure or twice it from one start of the JVM to the next — the
+counter 16 ns or 33 — as the JIT happens to compile it; the table has the lesser. The same document gives the
+other limit of these figures: with another process busy, the outermost counter gave 33
 to 41 ns from one run to the next, for this kernel and the one before it alike, so two kernels are compared by
 runs taken in turn and by their least. A free monad makes five or six small objects an operation; that is the
 floor of this family on the JVM, and it is the order of chapter 13's reference kernels (section 13.6), not a
@@ -398,7 +401,7 @@ thread — a transaction, and JPA's persistence context with it — is where the
 `ensuring` was enough for a transaction around a part. A handler changes two entities and saves nothing; the
 commit writes them after the program has ended.
 
-**Direct style, beside the kernel.** `okay-tiny-direct` is a plugin of javac (385 lines) that rewrites a method
+**Direct style, beside the kernel.** `okay-tiny-direct` is a plugin of javac (418 lines) that rewrites a method
 marked `@Direct` into the chain it stands for, after parsing and before types are attributed: `T x = $(p);
 rest` becomes `bind(p, (T x) -> { rest })`, an `if`, a for-each and `try`-`finally` (as `ensuring`) are
 rewritten, and the whole body is put off with `defer`. Because javac attributes the chain, the row, the
@@ -406,7 +409,7 @@ inference and the error messages are javac's (every step is given the method's r
 the row has not is refused at its own `$`), and the rest after a `$` is a value like any other — a handler
 may leave it or go on with it twice (`DirectTest.everyWay`). Where it cannot rewrite a `$` — inside a lambda,
 a `while`, a branch of `?:`, a `try` with a `catch` — it is an error at that line, never a failure at run time
-(ten programs under `direct/src/test/negative`). It depends on javac's internal classes, as Lombok does. In
+(twelve programs under `direct/src/test/negative`). It depends on javac's internal classes, as Lombok does. In
 Java, then, a transformation need not rewrite bytecode: it can rewrite the source tree, and the types are
 checked after it (chapters 3e and 3g).
 
@@ -422,7 +425,7 @@ What the types check, in `code/java/rows/` and in okay-tiny alike, with no plugi
 - **what a handler's own clauses may ask**: exactly what is around it (section 3j.3).
 
 The evidence is programs javac must refuse: eight under `code/java/rows/refused/`, run by `run-all.sh`, and
-twenty-four in okay-tiny's `src/test/negative`, each for its own reason.
+twenty-five in okay-tiny's `src/test/negative`, each for its own reason.
 
 What Java costs whatever the design:
 
@@ -436,14 +439,36 @@ What Java costs whatever the design:
   in the row, so two states are two types (`StdTest`);
 - javac's messages speak of inference variables, far from the cause;
 - the refinement is paid once inside the kernel: one cast in `Fx.java`, guarded by the test that a clause was
-  made for the operation asked. okay-tiny has thirteen places marked unchecked — the row, a phantom, said
-  anew; a hidden type opened by an identity; the one end of every stack of steps — and none in the moves of its
-  machine; they are guarded the same way and by the rule that its clauses and handlers can be made only through
-  its functions.
+  made for the operation asked. okay-tiny has five places marked unchecked — the row, a phantom, said anew
+  where handlers begin to be put; a hidden type opened by an identity, twice; a part made anew as the part it
+  replaces; an operation of a template as what the template made it — and none in the moves of its machine;
+  they are guarded the same way and by the rule that its clauses and handlers can be made only through its
+  functions.
 
 And what no type here says: that `done` and the clauses make a lawful monad. A clause that calls `k` twice and
 keeps one result passes the types. Chapter 4's laws are the author's to keep, here as everywhere but Lean; for
 this kernel they are the twelve lines of `Laws.java`.
+
+**What its tests missed.** Three faults were found in the library after every test had passed, and each is
+a fault of this kind of kernel, not of Java. A rest was, for a few hours, given its steps after its clause had
+returned — an optimization — and a clause that ran its rest inside itself found it without them: a callback
+given to work already done is called there and then. The same callback, where it did run the rest, ran it as
+a call inside the clause, and with work that ends quickly the Java stack only grew: 27 frames at a wait became
+86 to 888 over twenty thousand waits. And where a part was left, a closing that threw kept the other
+closings of that rest from being run. The first was seen by another program using the library, the second by
+a test of twenty thousand waits written after the first, the third by reading the code. None is in the
+family's TCK, which has no closing, no rest kept and no work that ends on another thread. What was added is
+`WaysTest`: three thousand random programs of states, failures, choices, closings and exceptions, each
+written nine ways that mean the same and take the machine by different roads — answered in place, the rest
+taken off and put back, the rest kept — which must give the same value or exception and the same notes in
+the same order; and whatever was opened closed once, the last opened first. Run against the kernel as it
+was, it finds the third fault within its first six hundred programs. The fast roads of a machine are where
+its faults are, and a law that says two ways of writing are one is a test of them that needs no second
+implementation.
+
+The plugin had its own: a name declared in a block with a `$`, or in a branch that may end the method, was
+in what followed that block's — a field of the same name was read as the local, with no word from javac.
+It is refused now, at the block.
 
 ## 3j.12 What was not shown
 
@@ -459,7 +484,8 @@ prints `code/laws-expected.txt` with line 7 as *does not compile*; the eight pro
 `code/java/rows/refused/` are refused by javac for the words on their first lines. `javac -Xlint:all` on the
 three files gives no warning. Java 26, 2026-11-27.
 
-In okay-tiny at `d991227`, Java 21: `./gradlew test` — 92 tests of the kernel (`ScenariosTest`, `StdTest`,
-`AsyncTest`, `TckTest`, `BookingTest`, `GuideTest`, `PortsTest`, `ReadmeTest`, and `NegativeTest` over the 24
-programs of `src/test/negative`), 19 of `direct/`, 10 of `spring-sample/`; all passed, 2026-11-27. The program
+In okay-tiny at `8962bdf`, Java 21: `./gradlew test` — 100 tests of the kernel (`ScenariosTest`, `StdTest`,
+`AsyncTest`, `TckTest`, `WaysTest`, `BookingTest`, `GuideTest`, `PortsTest`, `ReadmeTest`, and
+`NegativeTest` over the 25 programs of `src/test/negative`), 22 of `direct/`, 10 of `spring-sample/`; all
+passed, 2026-11-28. The program
 of section 3j.3 that compiled and failed was run against `ece0f7e`, where handlers were put innermost first.
